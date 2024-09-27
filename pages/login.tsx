@@ -1,5 +1,5 @@
 import '../app/globals.css'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Inter } from 'next/font/google'
 import Image from 'next/image'
 import { useRouter } from 'next/router'
@@ -21,25 +21,20 @@ function LoginPage() {
       }
     })
     return () => {
-      if (authListener && authListener.subscription) {
-        authListener.subscription.unsubscribe();
-      }
+      authListener?.subscription.unsubscribe();
     }
   }, [router])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.id]: e.target.value })
-  }
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }))
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError('')
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      })
+      const { data, error } = await supabase.auth.signInWithPassword(formData)
 
       if (error) throw error
 
@@ -58,14 +53,13 @@ function LoginPage() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback?redirect=/dashboard`
         }
       });
       if (error) throw error;
-      console.log('Google sign-in initiated', data);
     } catch (error) {
       console.error('Error signing in with Google:', error);
       setError('Failed to sign in with Google. Please try again.');

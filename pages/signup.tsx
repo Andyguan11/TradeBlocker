@@ -1,5 +1,5 @@
 import '../app/globals.css'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Inter } from 'next/font/google'
 import Image from 'next/image'
 import { useRouter } from 'next/router'
@@ -18,121 +18,87 @@ function SignUpPage() {
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN') {
+      if (event === 'SIGNED_IN' && session?.user) {
         console.log('User signed in, checking profile');
-        if (session?.user) {
+        try {
           const { data: profile, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single();
 
-          if (error && error.code !== 'PGRST116') {
-            console.error('Error fetching profile:', error);
-            setError('An error occurred while fetching your profile. Please try again.');
-            return;
-          }
+          if (error && error.code !== 'PGRST116') throw error;
 
           if (!profile) {
             console.log('Profile not found, creating new profile');
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert([
-                {
-                  id: session.user.id,
-                  email: session.user.email,
-                  full_name: session.user.user_metadata.full_name,
-                }
-              ]);
-
-            if (insertError) {
-              console.error('Error creating profile:', insertError);
-              setError('An error occurred while creating your profile. Please try again.');
-              return;
-            }
+            await supabase.from('profiles').insert([
+              {
+                id: session.user.id,
+                email: session.user.email,
+                full_name: session.user.user_metadata.full_name,
+              }
+            ]);
           }
 
           console.log('Redirecting to dashboard');
           router.push('/dashboard');
+        } catch (error) {
+          console.error('Error:', error);
+          setError('An error occurred. Please try again.');
         }
       }
     });
 
     return () => {
-      if (authListener && authListener.subscription) {
-        authListener.subscription.unsubscribe();
-      }
+      authListener?.subscription.unsubscribe();
     }
   }, [router]);
 
   useEffect(() => {
-    // Check for error in URL params
     const { error } = router.query
     if (error === 'user_exists') {
       setError('An account with this email already exists. Please try logging in instead.')
     }
   }, [router.query])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.id]: e.target.value })
-  }
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }))
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError('')
     try {
-      console.log('Checking if user exists:', formData.email);
-      const { data: existingUser, error: userCheckError } = await supabase
+      const { data: existingUser } = await supabase
         .from('profiles')
         .select('id')
         .eq('email', formData.email)
         .single()
-
-      if (userCheckError && userCheckError.code !== 'PGRST116') {
-        throw userCheckError
-      }
 
       if (existingUser) {
         setError('An account with this email already exists. Please try logging in instead.')
         return
       }
 
-      console.log('Attempting to sign up with:', formData.email);
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-      })
+      const { data: authData, error: authError } = await supabase.auth.signUp(formData)
 
       if (authError) throw authError
 
-      console.log('Sign up response:', authData);
-
       if (authData.user) {
-        console.log('User created, inserting profile');
-        // Create a profile record
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            { 
-              id: authData.user.id, 
-              email: authData.user.email,
-            }
-          ])
-
-        if (profileError) throw profileError
-
-        console.log('Profile inserted successfully');
+        await supabase.from('profiles').insert([
+          { 
+            id: authData.user.id, 
+            email: authData.user.email,
+          }
+        ])
 
         if (authData.session) {
-          console.log('Session available, redirecting to dashboard');
           router.push('/dashboard')
         } else {
-          console.log('No session, showing confirmation message');
           alert('Your account has been created. Please check your email for the confirmation link to complete your registration. If you do not receive an email, please contact support.')
         }
       } else {
-        console.log('No user returned from sign up');
         alert('Signup successful, but no user returned. This is unexpected. Please contact support.')
       }
     } catch (error: any) {
@@ -146,14 +112,13 @@ function SignUpPage() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`
         }
       });
       if (error) throw error;
-      console.log('Google sign-in initiated', data);
     } catch (error) {
       console.error('Error signing in with Google:', error);
       setError('Failed to sign up with Google. Please try again.');
