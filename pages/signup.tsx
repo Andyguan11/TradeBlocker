@@ -17,18 +17,53 @@ function SignUpPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
-        console.log('User signed in, redirecting to dashboard');
-        router.push('/dashboard');
+        console.log('User signed in, checking profile');
+        if (session?.user) {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (error && error.code !== 'PGRST116') {
+            console.error('Error fetching profile:', error);
+            setError('An error occurred while fetching your profile. Please try again.');
+            return;
+          }
+
+          if (!profile) {
+            console.log('Profile not found, creating new profile');
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert([
+                {
+                  id: session.user.id,
+                  email: session.user.email,
+                  full_name: session.user.user_metadata.full_name,
+                }
+              ]);
+
+            if (insertError) {
+              console.error('Error creating profile:', insertError);
+              setError('An error occurred while creating your profile. Please try again.');
+              return;
+            }
+          }
+
+          console.log('Redirecting to dashboard');
+          router.push('/dashboard');
+        }
       }
-    })
+    });
+
     return () => {
       if (authListener && authListener.subscription) {
         authListener.subscription.unsubscribe();
       }
     }
-  }, [router])
+  }, [router]);
 
   useEffect(() => {
     // Check for error in URL params
@@ -114,7 +149,7 @@ function SignUpPage() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirect=/signup`
+          redirectTo: `${window.location.origin}/auth/callback`
         }
       });
       if (error) throw error;
