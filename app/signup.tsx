@@ -5,7 +5,6 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../utils/supabaseClient'
 import { Inter } from 'next/font/google'
-import React from 'react';
 
 const inter = Inter({ subsets: ['latin'] })
 

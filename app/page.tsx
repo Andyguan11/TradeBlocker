@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../utils/supabaseClient'
-
 import { Inter } from 'next/font/google'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -127,7 +126,9 @@ export default function Home() {
   };
 
   return (
-    <div className={`min-h-screen bg-gray-100 flex items-center justify-center p-4 ${inter.className}`}>
+    <div className={`min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4 ${inter.className}`}>
+      <div className="w-full max-w-6xl mb-8">
+      </div>
       <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-6xl w-full flex">
         {/* Left side - Sign up form */}
         <div className="w-full lg:w-1/2 p-8 flex flex-col">
