@@ -1,13 +1,15 @@
 import '../app/globals.css'
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import Image from 'next/legacy/image'
+import { useRouter } from 'next/router'
 import { supabase } from '../utils/supabaseClient'
 
 console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
 console.log('Supabase Anon Key:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Not set')
 
-// Remove the unused 'inter' variable
-// const inter = Inter({ subsets: ['latin'] })
+import { Inter } from 'next/font/google'
+
+const inter = Inter({ subsets: ['latin'] })
 
 function SignUpPage() {
   const [formData, setFormData] = useState({ email: '', password: '' })
@@ -52,13 +54,13 @@ function SignUpPage() {
       authListener?.subscription.unsubscribe();
     }
   }, [router]);
+
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const error = searchParams.get('error');
+    const { error } = router.query
     if (error === 'user_exists') {
-      setError('An account with this email already exists. Please try logging in instead.');
+      setError('An account with this email already exists. Please try logging in instead.')
     }
-  }, []);
+  }, [router.query])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }))
@@ -125,13 +127,14 @@ function SignUpPage() {
       setIsLoading(false);
     }
   };
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+    <div className={`min-h-screen bg-gray-100 flex items-center justify-center p-4 ${inter.className}`}>
       <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-6xl w-full flex">
         {/* Left side - Sign up form */}
         <div className="w-full lg:w-1/2 p-8 flex flex-col">
           <div className="flex flex-col items-center mb-8">
-            <img src="/logo.png" alt="TradeBlocker Logo" width={64} height={64} className="mb-4" />
+            <Image src="/logo.png" alt="TradeBlocker Logo" width={64} height={64} className="mb-4" />
             <h1 className="text-3xl font-bold">TradeBlocker</h1>
           </div>
           
