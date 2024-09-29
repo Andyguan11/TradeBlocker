@@ -15,51 +15,47 @@ export default function AuthPage() {
   const [error, setError] = useState('')
   const [isLogin, setIsLogin] = useState(true)
   const router = useRouter()
+  useEffect(() => {
+    console.log('Supabase client initialized:', !!supabase)
+  }, [])
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        console.log('User signed in, checking profile');
-        try {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          if (error && error.code !== 'PGRST116') throw error;
-
-          if (!profile) {
-            console.log('Profile not found, creating new profile');
-            await supabase.from('profiles').insert([
-              {
-                id: session.user.id,
-                email: session.user.email,
-                full_name: session.user.user_metadata.full_name,
-              }
-            ]);
-          }
-
-          console.log('Redirecting to dashboard');
-          router.push('/dashboard');
-        } catch (error) {
-          console.error('Error:', error);
-          setError('An error occurred. Please try again.');
-        }
+    const testSupabaseConnection = async () => {
+      try {
+        const { data, error } = await supabase.from('profiles').select('id').limit(1)
+        if (error) throw error
+        console.log('Supabase connection test successful')
+      } catch (error) {
+        console.error('Supabase connection test failed:', error)
       }
-    });
-
-    return () => {
-      authListener?.subscription.unsubscribe();
     }
+
+    testSupabaseConnection()
+  }, [])
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && user.email_confirmed_at) {
+        router.push('/dashboard');
+      }
+    };
+
+    checkUser();
   }, [router]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const error = searchParams.get('error');
-    if (error === 'user_exists') {
+    if (error === 'not_authenticated') {
+      setError('Please sign in to access the dashboard.');
+    } else if (error === 'auth_error') {
+      setError('An authentication error occurred. Please try again.');
+    } else if (error === 'user_exists') {
       setError('An account with this email already exists. Please try logging in instead.')
       setIsLogin(true)
+    } else if (error === 'email_not_confirmed') {
+      setError('Please confirm your email address before accessing the dashboard.');
     }
   }, [])
 
@@ -71,45 +67,37 @@ export default function AuthPage() {
     e.preventDefault()
     setIsLoading(true)
     setError('')
+
     try {
       if (isLogin) {
+        console.log('Attempting to sign in')
         const { data, error } = await supabase.auth.signInWithPassword(formData)
         if (error) throw error
         if (data.user) {
-          console.log('User signed in successfully');
-          router.push('/dashboard')
-        }
-      } else {
-        const { data: existingUser } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', formData.email)
-          .single()
-
-        if (existingUser) {
-          setError('An account with this email already exists. Please try logging in instead.')
-          setIsLogin(true)
-          return
-        }
-
-        const { data: authData, error: authError } = await supabase.auth.signUp(formData)
-        if (authError) throw authError
-
-        if (authData.user) {
-          await supabase.from('profiles').insert([
-            { 
-              id: authData.user.id, 
-              email: authData.user.email,
-            }
-          ])
-
-          if (authData.session) {
+          if (data.user.email_confirmed_at) {
+            console.log('User signed in successfully');
             router.push('/dashboard')
           } else {
-            alert('Your account has been created. Please check your email for the confirmation link to complete your registration. If you do not receive an email, please contact support.')
+            setError('Please confirm your email address before signing in.');
           }
+        }
+      } else {
+        console.log('Attempting to sign up')
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+        })
+        
+        if (authError) throw authError
+
+        console.log('Sign up response:', authData)
+
+        if (authData.user) {
+          console.log('User signed up successfully')
+          setError('Your account has been created. Please check your email for the confirmation link to complete your registration.')
         } else {
-          alert('Signup successful, but no user returned. This is unexpected. Please contact support.')
+          console.log('Sign up successful, but no user returned')
+          setError('Signup successful, but no user returned. This is unexpected. Please contact support.')
         }
       }
     } catch (error: any) {
@@ -123,17 +111,17 @@ export default function AuthPage() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/dashboard`
         }
       });
       if (error) throw error;
+      // The user will be redirected to Google's login page
     } catch (error) {
       console.error('Error signing in with Google:', error);
       setError('Failed to sign in with Google. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
