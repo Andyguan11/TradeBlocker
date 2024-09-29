@@ -1,8 +1,6 @@
 'use client'
 
 import { X } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/warnCard"
-import { Button } from "@/components/ui/warnButton"
 import Link from "next/link"
 import { useState } from "react"
 
@@ -12,17 +10,15 @@ export function DashboardComponent() {
   if (!isVisible) return null
 
   return (
-    <Card className="w-full max-w-2xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
-      <CardContent className="p-6 relative">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-4 right-4"
+    <div className="w-full max-w-2xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
+      <div className="p-6 relative">
+        <button
+          className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
           onClick={() => setIsVisible(false)}
           aria-label="Close"
         >
-          <X className="h-5 w-5" />
-        </Button>
+          <X className="h-5 w-5 text-gray-500" />
+        </button>
         <div className="flex items-center space-x-4">
           <div className="flex-shrink-0">
             <svg
@@ -43,7 +39,7 @@ export function DashboardComponent() {
             <h2 className="text-lg font-semibold text-gray-900 leading-tight">
               Remember: Only one block can be active at a time.
             </h2>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-sm text-gray-600 mt-1">
               Lockable blocks cannot be cancelled once activated. Ensure your{" "}
               <Link href="/settings" className="text-blue-600 hover:underline">
                 settings
@@ -52,7 +48,7 @@ export function DashboardComponent() {
             </p>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
