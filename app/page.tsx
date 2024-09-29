@@ -1,17 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../utils/supabaseClient'
 import { Inter } from 'next/font/google'
+import React from 'react';
 
 const inter = Inter({ subsets: ['latin'] })
 
-export default function Home() {
+export default function AuthPage() {
   const [formData, setFormData] = useState({ email: '', password: '' })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isLogin, setIsLogin] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
@@ -53,54 +55,65 @@ export default function Home() {
   }, [router]);
 
   useEffect(() => {
-    const error = new URLSearchParams(window.location.search).get('error')
+    const searchParams = new URLSearchParams(window.location.search);
+    const error = searchParams.get('error');
     if (error === 'user_exists') {
       setError('An account with this email already exists. Please try logging in instead.')
+      setIsLogin(true)
     }
   }, [])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }))
-  }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError('')
     try {
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', formData.email)
-        .single()
-
-      if (existingUser) {
-        setError('An account with this email already exists. Please try logging in instead.')
-        return
-      }
-
-      const { data: authData, error: authError } = await supabase.auth.signUp(formData)
-
-      if (authError) throw authError
-
-      if (authData.user) {
-        await supabase.from('profiles').insert([
-          { 
-            id: authData.user.id, 
-            email: authData.user.email,
-          }
-        ])
-
-        if (authData.session) {
+      if (isLogin) {
+        const { data, error } = await supabase.auth.signInWithPassword(formData)
+        if (error) throw error
+        if (data.user) {
+          console.log('User signed in successfully');
           router.push('/dashboard')
-        } else {
-          alert('Your account has been created. Please check your email for the confirmation link to complete your registration. If you do not receive an email, please contact support.')
         }
       } else {
-        alert('Signup successful, but no user returned. This is unexpected. Please contact support.')
+        const { data: existingUser } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', formData.email)
+          .single()
+
+        if (existingUser) {
+          setError('An account with this email already exists. Please try logging in instead.')
+          setIsLogin(true)
+          return
+        }
+
+        const { data: authData, error: authError } = await supabase.auth.signUp(formData)
+        if (authError) throw authError
+
+        if (authData.user) {
+          await supabase.from('profiles').insert([
+            { 
+              id: authData.user.id, 
+              email: authData.user.email,
+            }
+          ])
+
+          if (authData.session) {
+            router.push('/dashboard')
+          } else {
+            alert('Your account has been created. Please check your email for the confirmation link to complete your registration. If you do not receive an email, please contact support.')
+          }
+        } else {
+          alert('Signup successful, but no user returned. This is unexpected. Please contact support.')
+        }
       }
     } catch (error: any) {
-      console.error('Signup error:', error)
+      console.error('Auth error:', error)
       setError(error.message || 'An unexpected error occurred. Please try again.')
     } finally {
       setIsLoading(false)
@@ -119,18 +132,16 @@ export default function Home() {
       if (error) throw error;
     } catch (error) {
       console.error('Error signing in with Google:', error);
-      setError('Failed to sign up with Google. Please try again.');
+      setError('Failed to sign in with Google. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className={`min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4 ${inter.className}`}>
-      <div className="w-full max-w-6xl mb-8">
-      </div>
+    <main className={`min-h-screen bg-gray-100 flex items-center justify-center p-4 ${inter.className}`}>
       <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-6xl w-full flex">
-        {/* Left side - Sign up form */}
+        {/* Left side - Auth form */}
         <div className="w-full lg:w-1/2 p-8 flex flex-col">
           <div className="flex flex-col items-center mb-8">
             <Image src="/logo.png" alt="TradeBlocker Logo" width={64} height={64} className="mb-4" />
@@ -163,7 +174,7 @@ export default function Home() {
                   />
                   <path fill="none" d="M1 1h22v22H1z" />
                 </svg>
-                Sign up with Google
+                Sign {isLogin ? 'in' : 'up'} with Google
               </>
             )}
           </button>
@@ -197,16 +208,19 @@ export default function Home() {
               disabled={isLoading}
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
             >
-              {isLoading ? 'Creating Account...' : 'Create Account'}
+              {isLoading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
             </button>
           </form>
           
           <p className="text-center text-xs text-gray-500 mt-4">
-            Already have an account? <a href="/login" className="underline hover:text-gray-700">Login Here</a>
+            {isLogin ? "Don't have an account? " : "Already have an account? "}
+            <button onClick={() => setIsLogin(!isLogin)} className="underline hover:text-gray-700">
+              {isLogin ? 'Sign up here' : 'Login here'}
+            </button>
           </p>
 
           <p className="text-center text-xs text-gray-500 mt-4">
-            By signing up, you agree to our{' '}
+            By signing {isLogin ? 'in' : 'up'}, you agree to our{' '}
             <a href="/terms" className="underline hover:text-gray-700">Terms of Service</a>{' '}
             and{' '}
             <a href="/privacy" className="underline hover:text-gray-700">Privacy Policy</a>
@@ -222,6 +236,6 @@ export default function Home() {
           <div className="absolute bottom-1/4 right-1/4 w-1/2 h-1/2 bg-pink-200 opacity-10 rounded-full filter blur-3xl"></div>
         </div>
       </div>
-    </div>
+    </main>
   )
 }
