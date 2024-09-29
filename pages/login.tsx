@@ -1,11 +1,14 @@
 import '../app/globals.css'
 import { useState, useEffect, useCallback } from 'react'
-import { Inter } from 'next/font/google'
-import Image from 'next/image'
-import { useRouter } from 'next/router'
+import { useRouter } from 'next/navigation'
 import { supabase } from '../utils/supabaseClient'
 
-const inter = Inter({ subsets: ['latin'] })
+// Remove unused imports
+// import { Inter } from '@next/font/google'
+// import Image from 'next/image'
+
+// Remove unused constant
+// const inter = Inter({ subsets: ['latin'] })
 
 function LoginPage() {
   const [formData, setFormData] = useState({ email: '', password: '' })
@@ -67,14 +70,13 @@ function LoginPage() {
       setIsLoading(false);
     }
   };
-
   return (
-    <div className={`min-h-screen bg-gray-100 flex items-center justify-center p-4 ${inter.className}`}>
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-6xl w-full flex">
         {/* Left side - Login form */}
         <div className="w-full lg:w-1/2 p-8 flex flex-col">
           <div className="flex flex-col items-center mb-8">
-            <Image src="/logo.png" alt="TradeBlocker Logo" width={64} height={64} className="mb-4" />
+            <img src="/logo.png" alt="TradeBlocker Logo" width={64} height={64} className="mb-4" />
             <h1 className="text-3xl font-bold">TradeBlocker</h1>
           </div>
           
