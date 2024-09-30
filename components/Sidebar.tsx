@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/Sidebarbutton"
 import { Card } from "@/components/ui/SidebarCard"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Intergrationsvatar"
 import { Badge } from "@/components/ui/SidebarBadge"
-import { PlusIcon, ChevronRightIcon, PencilIcon, ChevronLeftIcon, Settings } from "lucide-react"
+import { PlusIcon, ChevronRightIcon, PencilIcon, ChevronLeftIcon, Settings, X } from "lucide-react"
 import { supabase } from "../utils/supabaseClient"
 
 export function GlassySidebar() {
-  const [isExpanded, setIsExpanded] = useState(true)
+  const [isExpanded, setIsExpanded] = useState(false)
   const [selectedItem, setSelectedItem] = useState('Dashboard')
   const [firstName, setFirstName] = useState('')
+  const [showComingSoon, setShowComingSoon] = useState(false)
 
   const toggleSidebar = () => setIsExpanded(!isExpanded)
 
@@ -134,7 +135,11 @@ export function GlassySidebar() {
                   </svg>
                   Intercom
                 </Button>
-                <Button variant="ghost" className="w-full justify-start text-blue-500 hover:bg-white/50 transition-colors">
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-blue-500 hover:bg-white/50 transition-colors"
+                  onClick={() => setShowComingSoon(true)}
+                >
                   <PlusIcon className="h-5 w-5 mr-3" />
                   Add new plugin
                 </Button>
@@ -170,6 +175,30 @@ export function GlassySidebar() {
           >
             <ChevronRightIcon className="h-4 w-4" />
           </Button>
+        </div>
+      )}
+
+      {/* Coming Soon Popup */}
+      {showComingSoon && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl w-80">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Coming Soon</h2>
+              <button 
+                onClick={() => setShowComingSoon(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-gray-600 mb-4">This feature is not yet available. Stay tuned for updates!</p>
+            <button
+              onClick={() => setShowComingSoon(false)}
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
+            >
+              Got it
+            </button>
+          </div>
         </div>
       )}
     </div>

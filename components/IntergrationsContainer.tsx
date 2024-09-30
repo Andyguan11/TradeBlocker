@@ -40,6 +40,8 @@ export function ConnectedWallets() {
   const [lossLimit, setLossLimit] = useState('')
   const [profitLimit, setProfitLimit] = useState('')
   const [limitType, setLimitType] = useState<'percentage' | 'value'>('percentage')
+  const [showComingSoon, setShowComingSoon] = useState(false)
+  const [showComingSoonIntegration, setShowComingSoonIntegration] = useState(false)
 
   const handleSwitchChange = (index: number) => {
     setAppStates(prevStates => {
@@ -66,7 +68,7 @@ export function ConnectedWallets() {
       {/* Block now banner */}
       <div 
         className="bg-gradient-to-b from-red-50 to-white p-3 flex items-center justify-center cursor-pointer"
-        onClick={() => setShowBlockPopup(true)}
+        onClick={() => setShowComingSoon(true)}
       >
         <div className="flex items-center space-x-2">
           <Shield className="w-5 h-5 text-red-500" />
@@ -117,6 +119,7 @@ export function ConnectedWallets() {
             className={`p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-all duration-300 flex items-center ${isAddHovered ? 'px-4' : ''}`}
             onMouseEnter={() => setIsAddHovered(true)}
             onMouseLeave={() => setIsAddHovered(false)}
+            onClick={() => setShowComingSoonIntegration(true)}
           >
             <Plus className="w-5 h-5" />
             {isAddHovered && (
@@ -262,6 +265,54 @@ export function ConnectedWallets() {
                   Yes, Activate
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Coming Soon Popup */}
+        {showComingSoon && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-80">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Coming Soon</h2>
+                <button 
+                  onClick={() => setShowComingSoon(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-gray-600 mb-4">The "Block All Now" feature is not yet available. Stay tuned for updates!</p>
+              <button
+                onClick={() => setShowComingSoon(false)}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Coming Soon Integration Popup */}
+        {showComingSoonIntegration && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-80">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Coming Soon</h2>
+                <button 
+                  onClick={() => setShowComingSoonIntegration(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-gray-600 mb-4">The ability to add new integrations is not yet available. Stay tuned for updates!</p>
+              <button
+                onClick={() => setShowComingSoonIntegration(false)}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
+              >
+                Got it
+              </button>
             </div>
           </div>
         )}
