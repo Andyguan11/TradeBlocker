@@ -2,6 +2,7 @@ import "../styles/globals.css";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "../styles/globals.css";
+import { Poppins } from 'next/font/google';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -12,6 +13,12 @@ const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
   weight: "100 900",
+});
+
+const poppins = Poppins({ 
+  weight: ['400', '600'],
+  subsets: ['latin'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -25,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={poppins.className}>
       <body>{children}</body>
     </html>
   )

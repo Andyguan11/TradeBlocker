@@ -1,14 +1,40 @@
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import HeaderNav from '../components/HeaderNav';
 import { DashboardComponent } from '../components/warning';
-// Add any necessary CSS imports here, if they're not already in your global styles
+import { GlassySidebar } from '../components/Sidebar';
+import { supabase } from '../utils/supabaseClient';
 
 export default function Dashboard() {
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/login');
+      } else {
+        setIsLoading(false);
+      }
+    };
+
+    checkUser();
+  }, [router]);
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100"> {/* Add a background color */}
-      <HeaderNav />
-      <main className="container mx-auto py-6">
-        <DashboardComponent />
-      </main>
+    <div className="min-h-screen flex">
+      <GlassySidebar />
+      <div className="flex-1 flex flex-col">
+        <HeaderNav />
+        <main className="flex-1 p-6 overflow-auto">
+          <DashboardComponent />
+        </main>
+      </div>
     </div>
   );
 }
