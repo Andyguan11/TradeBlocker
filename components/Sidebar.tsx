@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/Sidebarbutton"
 import { Card } from "@/components/ui/SidebarCard"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Intergrationsvatar"
 import { Badge } from "@/components/ui/SidebarBadge"
 import { PlusIcon, ChevronRightIcon, PencilIcon, ChevronLeftIcon, Settings } from "lucide-react"
 import { supabase } from "../utils/supabaseClient"

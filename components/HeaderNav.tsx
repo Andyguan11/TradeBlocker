@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react"
 import { supabase } from "../utils/supabaseClient"
 import { useRouter } from "next/navigation"
 import { Poppins } from 'next/font/google'
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/Intergrationsvatar"
 
 const poppins = Poppins({ 
   weight: ['400', '600'],

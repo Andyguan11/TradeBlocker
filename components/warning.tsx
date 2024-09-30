@@ -10,19 +10,19 @@ export function DashboardComponent() {
   if (!isVisible) return null
 
   return (
-    <div className="w-full max-w-2xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
-      <div className="p-6 relative">
+    <div className="w-full max-w-xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
+      <div className="p-4 relative">
         <button
-          className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
+          className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-100 transition-colors duration-200"
           onClick={() => setIsVisible(false)}
           aria-label="Close"
         >
-          <X className="h-5 w-5 text-gray-500" />
+          <X className="h-4 w-4 text-gray-500" />
         </button>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
           <div className="flex-shrink-0">
             <svg
-              className="w-10 h-10 text-yellow-400"
+              className="w-8 h-8 text-yellow-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -36,10 +36,10 @@ export function DashboardComponent() {
             </svg>
           </div>
           <div className="flex-grow">
-            <h2 className="text-lg font-semibold text-gray-900 leading-tight">
+            <h2 className="text-base font-semibold text-gray-900 leading-tight">
               Remember: Only one block can be active at a time.
             </h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-xs text-gray-600 mt-1">
               Lockable blocks cannot be cancelled once activated. Ensure your{" "}
               <Link href="/settings" className="text-blue-600 hover:underline">
                 settings
