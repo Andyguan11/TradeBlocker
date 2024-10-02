@@ -5,6 +5,7 @@ import { DashboardComponent } from '../components/warning';
 import { GlassySidebar } from '../components/Sidebar';
 import { ConnectedWallets } from '../components/IntergrationsContainer';
 import { supabase } from '../utils/supabaseClient';
+import { InstalledApps } from '../components/InstalledApps';
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
@@ -36,12 +37,12 @@ export default function Dashboard() {
           <div className="mb-6">
             <DashboardComponent />
           </div>
-          <div className="flex">
-            <div className="w-1/2 pr-3">
+          <div className="flex flex-wrap">
+            <div className="w-full lg:w-1/2 pr-3 mb-6">
               <ConnectedWallets />
             </div>
-            <div className="w-1/2 pl-3">
-              {/* Placeholder for future content */}
+            <div className="w-full lg:w-1/2 pl-3 mb-6">
+              <InstalledApps />
             </div>
           </div>
         </main>
