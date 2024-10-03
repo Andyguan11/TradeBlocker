@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import HeaderNav from '../components/HeaderNav';
 import { DashboardComponent } from '../components/warning';
 import { GlassySidebar } from '../components/Sidebar';
-import { ConnectedWallets } from '../components/IntergrationsContainer';
+import { IntegrationsContainer } from '../components/IntergrationsContainer';
 import { supabase } from '../utils/supabaseClient';
 import { InstalledApps } from '../components/InstalledApps';
 
@@ -39,7 +39,7 @@ export default function Dashboard() {
           </div>
           <div className="flex flex-wrap">
             <div className="w-full lg:w-1/2 pr-3 mb-6">
-              <ConnectedWallets />
+              <IntegrationsContainer />
             </div>
             <div className="w-full lg:w-1/2 pl-3 mb-6">
               <InstalledApps />
