@@ -7,9 +7,6 @@ import { Switch } from "@/components/ui/switch"
 import { Poppins } from 'next/font/google'
 import { User, createClient } from '@supabase/supabase-js'
 
-// Note: Ensure all dependencies are properly listed in package.json
-// and that Netlify's dependency caching is configured correctly
-
 const poppins = Poppins({ 
   weight: ['400', '500', '600'],
   subsets: ['latin'],
@@ -160,68 +157,67 @@ const IntergrationsContainer: React.FC = () => {
     endTime.setHours(endTime.getHours() + (parseInt(blockDuration.hours) || 0));
     endTime.setMinutes(endTime.getMinutes() + (parseInt(blockDuration.minutes) || 0));
 
-    // First, get the current total_blocks value
-    const { data: currentData, error: fetchError } = await supabase
-      .from('user_settings')
-      .select('total_blocks')
-      .eq('user_id', userId)
-      .single();
+    try {
+      // Update Supabase
+      const { data, error } = await supabase
+        .from('user_settings')
+        .update({
+          block_state: 'active',
+          block_end_time: endTime.toISOString(),
+          is_unlockable: isUnlockable,
+          total_blocks: totalBlocks + 1
+        })
+        .eq('user_id', userId)
+        .select()
+        .single();
 
-    if (fetchError) {
-      console.error('Error fetching current total_blocks:', fetchError);
-      return;
-    }
+      if (error) {
+        throw error;
+      }
 
-    const currentTotalBlocks = currentData?.total_blocks || 0;
-    const newTotalBlocks = currentTotalBlocks + 1;
+      // Remove the Cloudflare KV update
+      // const response = await fetch('/api/update-block-status', { ... });
 
-    // Now update the user_settings with the new values
-    const { data, error } = await supabase
-      .from('user_settings')
-      .update({
-        block_state: 'active',
-        block_end_time: endTime.toISOString(),
-        is_unlockable: isUnlockable,
-        total_blocks: newTotalBlocks
-      })
-      .eq('user_id', userId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error saving block data:', error);
-    } else {
-      console.log('Updated user settings:', data);
       setActiveBlock({
         end_time: endTime.toISOString(),
         is_unlockable: isUnlockable,
       });
       setBlockState('active');
-      setTotalBlocks(newTotalBlocks);
+      setTotalBlocks(totalBlocks + 1);
       updateBlockDuration(endTime);
       setShowBlockConfirmation(false);
       console.log('Block activated, new state:', 'active', 'end time:', endTime);
+    } catch (error) {
+      console.error('Error activating block:', error);
     }
   };
 
   const handleUnblock = async () => {
     if (!userId || !activeBlock) return;
 
-    const { error } = await supabase
-      .from('user_settings')
-      .update({ 
-        block_state: 'inactive',
-        block_end_time: new Date().toISOString() 
-      })
-      .eq('user_id', userId);
+    try {
+      // Update Supabase
+      const { error } = await supabase
+        .from('user_settings')
+        .update({ 
+          block_state: 'inactive',
+          block_end_time: new Date().toISOString() 
+        })
+        .eq('user_id', userId);
 
-    if (error) {
-      console.error('Error removing block:', error);
-    } else {
+      if (error) {
+        throw error;
+      }
+
+      // Remove the Cloudflare KV update
+      // const response = await fetch('/api/update-block-status', { ... });
+
       setActiveBlock(null);
       setBlockState('inactive');
       setBlockDuration({ days: '', hours: '', minutes: '' });
       console.log('Block deactivated');
+    } catch (error) {
+      console.error('Error removing block:', error);
     }
   };
 
@@ -292,63 +288,37 @@ const IntergrationsContainer: React.FC = () => {
       console.error('Error getting user:', userError);
       return;
     }
-
+  
     console.log('User ID:', user.id);
-
-    const { error } = await supabase
-      .from('user_settings')
-      .update({ 
-        block_state: 'active',
-        block_end_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Set block for 24 hours
-      })
-      .eq('user_id', user.id);
-
-    if (error) {
-      console.error('Error updating block state:', error);
-    } else {
-      setBlockState('active');
-      console.log('Block state updated to active');
-      try {
-        const response = await fetch('/api/update-blocking-rules', { 
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            blockState: 'active'
-          })
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        console.log('Update blocking rules response:', await response.text());
-      } catch (error) {
-        console.error('Error updating blocking rules:', error);
-      }
-    }
-  };
-
-  const customFetch = async (url: string, options: RequestInit = {}) => {
-    const { data } = await supabase.auth.getUser();
-    const user = data?.user;
-    if (user) {
-      options.headers = {
-        ...options.headers,
-        'X-User-ID': user.id,
-      };
-    } else {
-      console.log('No user found');
-    }
-    const workerUrl = `https://tradingview-blocker.andy-393.workers.dev?url=${encodeURIComponent(url)}`;
-    console.log('Fetching from Worker URL:', workerUrl);
+  
     try {
-      const response = await fetch(workerUrl, options);
-      console.log('Response from Worker:', response.status, response.statusText);
-      return response;
+      // Update Supabase
+      const { error } = await supabase
+        .from('user_settings')
+        .update({ 
+          block_state: 'active',
+          block_end_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Set block for 24 hours
+        })
+        .eq('user_id', user.id);
+  
+      if (error) {
+        throw error;
+      }
+
+      // Remove the Cloudflare KV update
+      // const response = await fetch('/api/update-block-status', { ... });
+
+      setBlockState('active');
+      setActiveBlock({
+        end_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        is_unlockable: true, // or false, depending on your preference
+      });
+      console.log('Block state updated to active');
+
+      // Force a refresh of the current page to apply the block immediately
+      window.location.reload();
     } catch (error) {
-      console.error('Error fetching from Worker:', error);
-      throw error;
+      console.error('Error updating block state:', error);
     }
   };
 

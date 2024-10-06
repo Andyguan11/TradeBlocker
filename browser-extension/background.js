@@ -1,9 +1,24 @@
-// Function to clear local cache if needed
-function clearLocalCache() {
-  // Implementation depends on your specific caching mechanism
-  console.log('Clearing local cache');
-  // Add cache clearing logic here
-}
+chrome.webRequest.onBeforeRequest.addListener(
+  function(details) {
+    return {
+      redirectUrl: "http://localhost:8080/" + details.url
+    };
+  },
+  {
+    urls: ["<all_urls>"],
+    types: ["main_frame", "sub_frame", "stylesheet", "script", "image", "object", "xmlhttprequest", "other"]
+  },
+  ["blocking"]
+);
 
-// Consider calling clearLocalCache() periodically or on specific events
-// to ensure fresh data and avoid stale dependencies
+chrome.webRequest.onBeforeSendHeaders.addListener(
+  function(details) {
+    var userId = localStorage.getItem('userId');
+    if (userId) {
+      details.requestHeaders.push({name: "X-User-Id", value: userId});
+    }
+    return {requestHeaders: details.requestHeaders};
+  },
+  {urls: ["<all_urls>"]},
+  ["blocking", "requestHeaders"]
+);
