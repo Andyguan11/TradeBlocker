@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/Sidebarbutton"
 import { Card } from "@/components/ui/SidebarCard"
-import { Avatar, AvatarFallback } from "@/components/ui/IntergrationsAvatar"
-// Remove the unused import
-// import { Badge } from "@/components/ui/SidebarBadge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Intergrationsvatar"
+import { Badge } from "@/components/ui/SidebarBadge"
 import { PlusIcon, ChevronRightIcon, PencilIcon, ChevronLeftIcon, Settings, X } from "lucide-react"
 import { supabase } from "../utils/supabaseClient"
 
