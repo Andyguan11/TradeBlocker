@@ -15,6 +15,7 @@ export default function AuthPage() {
   const [error, setError] = useState('')
   const [isLogin, setIsLogin] = useState(true)
   const router = useRouter()
+
   useEffect(() => {
     console.log('Supabase client initialized:', !!supabase)
   }, [])
@@ -22,7 +23,7 @@ export default function AuthPage() {
   useEffect(() => {
     const testSupabaseConnection = async () => {
       try {
-        const { data, error } = await supabase.from('profiles').select('id').limit(1)
+        const { error } = await supabase.from('profiles').select('id').limit(1)
         if (error) throw error
         console.log('Supabase connection test successful')
       } catch (error) {
@@ -83,26 +84,18 @@ export default function AuthPage() {
         }
       } else {
         console.log('Attempting to sign up')
-        const { data: authData, error: authError } = await supabase.auth.signUp({
+        const { error: authError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
         })
         
         if (authError) throw authError
 
-        console.log('Sign up response:', authData)
-
-        if (authData.user) {
-          console.log('User signed up successfully')
-          setError('Your account has been created. Please check your email for the confirmation link to complete your registration.')
-        } else {
-          console.log('Sign up successful, but no user returned')
-          setError('Signup successful, but no user returned. This is unexpected. Please contact support.')
-        }
+        setError('Your account has been created. Please check your email for the confirmation link to complete your registration.')
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Auth error:', error)
-      setError(error.message || 'An unexpected error occurred. Please try again.')
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -111,7 +104,7 @@ export default function AuthPage() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/dashboard`

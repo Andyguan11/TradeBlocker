@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X } from 'lucide-react'
 import { Switch } from "@/components/ui/switch"
 import { Poppins } from 'next/font/google'
-import { User, createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
+import Image from 'next/image'
 
 const poppins = Poppins({ 
   weight: ['400', '500', '600'],
@@ -39,7 +40,6 @@ const supabase = createClient(
 
 export function IntegrationsContainer() {
   const [filter, setFilter] = useState('all')
-  const [appStates, setAppStates] = useState(apps.map(app => app.active))
   const [isAddHovered, setIsAddHovered] = useState(false)
   const [showBlockPopup, setShowBlockPopup] = useState(false)
   const [showSettingsPopup, setShowSettingsPopup] = useState(false)
@@ -52,7 +52,6 @@ export function IntegrationsContainer() {
   const [blockState, setBlockState] = useState<'active' | 'inactive'>('inactive');
   const [isUnlockable, setIsUnlockable] = useState(false);
   const [showBlockConfirmation, setShowBlockConfirmation] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeBlock, setActiveBlock] = useState<null | {
     end_time: string;
     is_unlockable: boolean;
@@ -74,7 +73,7 @@ export function IntegrationsContainer() {
     fetchUserAndSettings();
   }, []);
 
-  const fetchUserSettings = async (userId: string) => {
+  const fetchUserSettings = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('user_settings')
       .select('block_state, block_end_time, is_unlockable, total_blocks')
@@ -110,7 +109,7 @@ export function IntegrationsContainer() {
         console.log('Block is inactive');
       }
     }
-  };
+  }, [supabase]);
 
   const createUserSettings = async (userId: string) => {
     const { data, error } = await supabase
@@ -238,7 +237,6 @@ export function IntegrationsContainer() {
   };
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
     const checkBlockStatus = async () => {
       if (userId && activeBlock) {
         const now = new Date();
@@ -271,89 +269,15 @@ export function IntegrationsContainer() {
     };
 
     checkBlockStatus(); // Run immediately
-    timer = setInterval(checkBlockStatus, 60000); // Check every minute
+    const timer = setInterval(checkBlockStatus, 60000); // Check every minute
 
     return () => clearInterval(timer);
-  }, [userId, activeBlock]);
+  }, [userId, activeBlock, supabase, updateBlockDuration]);
 
   // Add this useEffect to log state changes
   useEffect(() => {
     console.log('Block state changed:', blockState);
   }, [blockState]);
-
-  const handleBlockAllNow = async () => {
-    console.log('Activating block...');
-    const { data, error: userError } = await supabase.auth.getUser();
-    const user = data?.user;
-    
-    if (userError || !user) {
-      console.error('Error getting user:', userError);
-      return;
-    }
-
-    console.log('User ID:', user.id);
-
-    const { error } = await supabase
-      .from('user_settings')
-      .update({ 
-        block_state: 'active',
-        block_end_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Set block for 24 hours
-      })
-      .eq('user_id', user.id);
-
-    if (error) {
-      console.error('Error updating block state:', error);
-    } else {
-      setBlockState('active');
-      console.log('Block state updated to active');
-      try {
-        const response = await fetch('/api/update-blocking-rules', { 
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            blockState: 'active'
-          })
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        console.log('Update blocking rules response:', await response.text());
-      } catch (error) {
-        console.error('Error updating blocking rules:', error);
-      }
-    }
-  };
-
-  const customFetch = async (url: string, options: RequestInit = {}) => {
-    const { data } = await supabase.auth.getUser();
-    const user = data?.user;
-    if (user) {
-      options.headers = {
-        ...options.headers,
-        'X-User-ID': user.id,
-      };
-    } else {
-      console.log('No user found');
-    }
-    const workerUrl = `https://tradingview-blocker.andy-393.workers.dev?url=${encodeURIComponent(url)}`;
-    console.log('Fetching from Worker URL:', workerUrl);
-    try {
-      const response = await fetch(workerUrl, options);
-      console.log('Response from Worker:', response.status, response.statusText);
-      return response;
-    } catch (error) {
-      console.error('Error fetching from Worker:', error);
-      throw error;
-    }
-  };
-
-  const updateBlockState = (newState: 'active' | 'inactive') => {
-    setBlockState(newState);
-    console.log('Block state updated to:', newState);
-  };
 
   return (
     <div className={`w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden ${poppins.className}`}>
@@ -446,7 +370,7 @@ export function IntegrationsContainer() {
             .map((app, index) => (
               <div key={index} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200">
                 <div className="flex items-center space-x-4">
-                  <img src={app.logo} alt={`${app.name} logo`} className="w-12 h-12 rounded-xl" />
+                  <Image src={app.logo} alt={`${app.name} logo`} width={48} height={48} className="w-12 h-12 rounded-xl" />
                   <div>
                     <h2 className="font-semibold text-gray-800">{app.name}</h2>
                     <p className="text-sm text-gray-500">{app.domain}</p>
@@ -535,6 +459,9 @@ export function IntegrationsContainer() {
                   </button>
                 </div>
               </div>
+              <p className="text-sm text-gray-600 mt-4">
+                &ldquo;TradingView&rdquo; is a registered trademark of TradingView, Inc.
+              </p>
             </div>
           </div>
         )}
