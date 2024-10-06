@@ -6,6 +6,7 @@ import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X } from 'lucide
 import { Switch } from "@/components/ui/switch"
 import { Poppins } from 'next/font/google'
 import { User, createClient } from '@supabase/supabase-js'
+import Image from 'next/image'
 
 // Note: Ensure all dependencies are properly listed in package.json
 // and that Netlify's dependency caching is configured correctly
@@ -274,7 +275,7 @@ const IntergrationsContainer: React.FC = () => {
     console.log('Block state changed:', blockState);
   }, [blockState]);
 
-  const handleBlockAllNow = async () => {
+  const handleBlockAllToggle = async () => {  // Add async here
     console.log('Activating block...');
     const { data, error: userError } = await supabase.auth.getUser();
     const user = data?.user;
@@ -318,34 +319,10 @@ const IntergrationsContainer: React.FC = () => {
         console.error('Error updating blocking rules:', error);
       }
     }
-  };
 
-  const customFetch = async (url: string, options: RequestInit = {}) => {
-    const { data } = await supabase.auth.getUser();
-    const user = data?.user;
-    if (user) {
-      options.headers = {
-        ...options.headers,
-        'X-User-ID': user.id,
-      };
-    } else {
-      console.log('No user found');
-    }
-    const workerUrl = `https://tradingview-blocker.andy-393.workers.dev?url=${encodeURIComponent(url)}`;
-    console.log('Fetching from Worker URL:', workerUrl);
-    try {
-      const response = await fetch(workerUrl, options);
-      console.log('Response from Worker:', response.status, response.statusText);
-      return response;
-    } catch (error) {
-      console.error('Error fetching from Worker:', error);
-      throw error;
-    }
-  };
-
-  const updateBlockState = (newState: 'active' | 'inactive') => {
-    setBlockState(newState);
-    console.log('Block state updated to:', newState);
+    const timer = setTimeout(() => {
+      // ... existing code
+    }, 500)
   };
 
   return (
@@ -439,7 +416,7 @@ const IntergrationsContainer: React.FC = () => {
             .map((app, index) => (
               <div key={index} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200">
                 <div className="flex items-center space-x-4">
-                  <img src={app.logo} alt={`${app.name} logo`} className="w-12 h-12 rounded-xl" />
+                  <Image src={app.logo} alt={`${app.name} logo`} width={48} height={48} className="rounded-xl" />
                   <div>
                     <h2 className="font-semibold text-gray-800">{app.name}</h2>
                     <p className="text-sm text-gray-500">{app.domain}</p>

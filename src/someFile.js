@@ -12,7 +12,10 @@
 // Conditional import based on platform
 let permissionsHandler;
 if (process.platform === 'darwin') {
-  permissionsHandler = require('node-mac-permissions');
+  // Use dynamic import instead of require
+  import('node-mac-permissions').then(module => {
+    permissionsHandler = module.default;
+  });
 } else if (process.platform === 'linux') {
   // Import a Linux-compatible permissions handler here
   // permissionsHandler = require('linux-permissions-handler');
@@ -32,3 +35,6 @@ const main = async () => {
   // const fs = require('fs')
   // ... rest of the function
 }
+
+// Export main function if needed
+export { main };
