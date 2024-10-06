@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X } from 'lucide-react'
 import { Switch } from "@/components/ui/switch"
 import { Poppins } from 'next/font/google'
-import { User, createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
 import Image from 'next/image'
 
 // Note: Ensure all dependencies are properly listed in package.json
@@ -62,11 +62,14 @@ const IntergrationsContainer: React.FC = () => {
   }>(null);
   const [totalBlocks, setTotalBlocks] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
-
   useEffect(() => {
-    // fetchUserSettings()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    const fetchSettings = async () => {
+      if (userId) {
+        await fetchUserSettings(userId);
+      }
+    };
+    fetchSettings();
+  }, [userId]);
 
   const fetchUserSettings = async (userId: string) => {
     const { data, error } = await supabase
@@ -656,6 +659,8 @@ const IntergrationsContainer: React.FC = () => {
           </div>
         )}
       </div>
+
+      <p>This is a quote: &quot;Example&quot; and another &quot;quote&quot;</p>
     </div>
   )
 }

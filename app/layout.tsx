@@ -4,9 +4,11 @@ import localFont from "next/font/local";
 import "../styles/globals.css";
 import { Poppins } from 'next/font/google';
 
+// Remove or comment out unused imports
 // import { GeistSans } from 'geist/font/sans'
 // import { GeistMono } from 'geist/font/mono'
 
+// Remove or comment out unused variables
 // const geistSans = GeistSans
 // const geistMono = GeistMono
 
