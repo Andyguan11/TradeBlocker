@@ -6,24 +6,34 @@
 // const checkPermissions = () => { ... }
 
 // Conditional import based on platform
-let permissionsHandler;
+let permissionsHandler = null;
+
 if (process.platform === 'darwin') {
-  // Only import node-mac-permissions on macOS
-  import('node-mac-permissions').then(module => {
-    permissionsHandler = module.default;
-  }).catch(error => {
-    console.warn('Failed to import node-mac-permissions:', error);
-  });
+  try {
+    // Use dynamic import for node-mac-permissions
+    import('node-mac-permissions').then(module => {
+      permissionsHandler = module.default;
+    }).catch(error => {
+      console.warn('Failed to import node-mac-permissions:', error);
+    });
+  } catch (error) {
+    console.warn('node-mac-permissions is not available:', error);
+  }
 } else if (process.platform === 'linux') {
-  // TODO: Implement Linux permissions handler
   console.log('Linux permissions handler not implemented yet');
 } else {
   console.warn('Unsupported platform for permissions handling');
 }
 
 const main = async () => {
+  if (permissionsHandler) {
+    // Use permissionsHandler here
+    console.log('Permissions handler is available');
+  } else {
+    console.log('Permissions handler is not available');
+  }
   // TODO: Implement main function
-  console.log('Main function not implemented yet');
-}
+  console.log('Main function not fully implemented yet');
+};
 
 export { main };
