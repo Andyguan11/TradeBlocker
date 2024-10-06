@@ -39,7 +39,6 @@ const supabase = createClient(
 
 export function IntegrationsContainer() {
   const [filter, setFilter] = useState('all')
-  const [appStates, setAppStates] = useState(apps.map(app => app.active))
   const [isAddHovered, setIsAddHovered] = useState(false)
   const [showBlockPopup, setShowBlockPopup] = useState(false)
   const [showSettingsPopup, setShowSettingsPopup] = useState(false)
@@ -52,7 +51,6 @@ export function IntegrationsContainer() {
   const [blockState, setBlockState] = useState<'active' | 'inactive'>('inactive');
   const [isUnlockable, setIsUnlockable] = useState(false);
   const [showBlockConfirmation, setShowBlockConfirmation] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeBlock, setActiveBlock] = useState<null | {
     end_time: string;
     is_unlockable: boolean;
