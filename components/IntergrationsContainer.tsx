@@ -329,6 +329,34 @@ const IntergrationsContainer: React.FC = () => {
     }
   };
 
+  const customFetch = async (url: string, options: RequestInit = {}) => {
+    const { data } = await supabase.auth.getUser();
+    const user = data?.user;
+    if (user) {
+      options.headers = {
+        ...options.headers,
+        'X-User-ID': user.id,
+      };
+    } else {
+      console.log('No user found');
+    }
+    const workerUrl = `https://tradingview-blocker.andy-393.workers.dev?url=${encodeURIComponent(url)}`;
+    console.log('Fetching from Worker URL:', workerUrl);
+    try {
+      const response = await fetch(workerUrl, options);
+      console.log('Response from Worker:', response.status, response.statusText);
+      return response;
+    } catch (error) {
+      console.error('Error fetching from Worker:', error);
+      throw error;
+    }
+  };
+
+  const updateBlockState = (newState: 'active' | 'inactive') => {
+    setBlockState(newState);
+    console.log('Block state updated to:', newState);
+  };
+
   return (
     <div className={`w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden ${poppins.className}`}>
       {/* Block now banner */}
