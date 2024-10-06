@@ -115,13 +115,9 @@ export default function AuthPage({ mode }: AuthPageProps) {
           router.push('/dashboard')
         }
       }
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error(`${mode === 'signup' ? 'Signup' : 'Login'} error:`, error)
-      setError(
-        error instanceof Error
-          ? error.message
-          : 'An unexpected error occurred. Please try again.'
-      )
+      setError(error.message || `An unexpected error occurred. Please try again.`)
     } finally {
       setIsLoading(false)
     }

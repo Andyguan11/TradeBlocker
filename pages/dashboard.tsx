@@ -5,7 +5,7 @@ import { DashboardComponent } from '../components/warning';
 import { GlassySidebar } from '../components/Sidebar';
 import IntegrationsContainer from '../components/IntergrationsContainer';
 import { supabase } from '../utils/supabaseClient';
-import InstalledApps from '../components/InstalledApps';
+import { InstalledApps } from '../components/InstalledApps';
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
@@ -42,7 +42,7 @@ export default function Dashboard() {
               <IntegrationsContainer />
             </div>
             <div className="w-full lg:w-1/2 pl-3 mb-6">
-              <InstalledApps platform="dashboard" apps={[]} />
+              <InstalledApps />
             </div>
           </div>
         </main>
