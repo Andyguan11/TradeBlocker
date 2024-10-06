@@ -9,3 +9,28 @@ function checkDependencyVersions() {
 
 // Call this function during the build process if needed
 // checkDependencyVersions();
+
+// Conditional import based on platform
+let permissionsHandler;
+if (process.platform === 'darwin') {
+  permissionsHandler = require('node-mac-permissions');
+} else if (process.platform === 'linux') {
+  // Import a Linux-compatible permissions handler here
+  // permissionsHandler = require('linux-permissions-handler');
+} else {
+  console.warn('Unsupported platform for permissions handling');
+}
+
+// Example function to check permissions (implement as needed)
+function checkPermissions() {
+  if (permissionsHandler) {
+    // Use the appropriate permissions handler based on the platform
+    // Implementation will depend on the specific handler you're using
+    console.log('Checking permissions');
+  } else {
+    console.warn('Permissions checking not available on this platform');
+  }
+}
+
+// Call this function when needed in your application
+// checkPermissions();

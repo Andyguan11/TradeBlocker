@@ -26,14 +26,14 @@
     "http": "^0.0.1-security",
     "lucide-react": "^0.446.0",
     "next": "latest",
-    "node-mac-permissions": "^2.4.0",
     "react": "latest",
     "react-dom": "latest",
     "react-hook-form": "^7.53.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "url": "^0.11.4",
-    "yup": "^1.4.0"
+    "yup": "^1.4.0",
+    "minimatch": "^3.1.2"
   },
   "devDependencies": {
     "@types/node": "^20",
