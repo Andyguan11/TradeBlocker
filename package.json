@@ -52,7 +52,8 @@
     "spectron": "^19.0.0",
     "tailwindcss": "latest",
     "typescript": "^5",
-    "wait-on": "^8.0.1"
+    "wait-on": "^8.0.1",
+    "netlify-plugin-cache": "^1.0.3"
   },
   "main": "electron.js",
   "build": {
