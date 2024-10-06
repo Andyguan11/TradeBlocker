@@ -4,7 +4,15 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+type YourResponseType = {
+  platform: string;
+  apps: {
+    name: string;
+    identifier: string;
+  }[];
+};
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse<YourResponseType>) {
   try {
     const platform = process.platform;
     let apps = [];
@@ -27,6 +35,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json({ platform, apps });
   } catch (error) {
     console.error('Error fetching installed apps:', error);
-    res.status(500).json({ error: 'Failed to fetch installed apps' });
+    res.status(500).json({ platform: '', apps: [], error: 'Failed to fetch installed apps' } as YourResponseType);
   }
 }

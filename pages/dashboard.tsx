@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import HeaderNav from '../components/HeaderNav';
 import { DashboardComponent } from '../components/warning';
 import { GlassySidebar } from '../components/Sidebar';
-import IntegrationsContainer from '../components/IntergrationsContainer';
+import { IntegrationsContainer } from '../components/IntergrationsContainer';
 import { supabase } from '../utils/supabaseClient';
 import { InstalledApps } from '../components/InstalledApps';
 

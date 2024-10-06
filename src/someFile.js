@@ -34,3 +34,6 @@ function checkPermissions() {
 
 // Call this function when needed in your application
 // checkPermissions();
+
+// Replace require with import
+import { execSync } from 'child_process';

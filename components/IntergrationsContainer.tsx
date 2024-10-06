@@ -1,14 +1,10 @@
 'use client'
 
-import React from 'react';
 import { useState, useEffect } from 'react'
 import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X } from 'lucide-react'
 import { Switch } from "@/components/ui/switch"
 import { Poppins } from 'next/font/google'
 import { User, createClient } from '@supabase/supabase-js'
-
-// Note: Ensure all dependencies are properly listed in package.json
-// and that Netlify's dependency caching is configured correctly
 
 const poppins = Poppins({ 
   weight: ['400', '500', '600'],
@@ -41,8 +37,9 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
 );
 
-const IntergrationsContainer: React.FC = () => {
+export function IntegrationsContainer() {
   const [filter, setFilter] = useState('all')
+  const [appStates, setAppStates] = useState(apps.map(app => app.active))
   const [isAddHovered, setIsAddHovered] = useState(false)
   const [showBlockPopup, setShowBlockPopup] = useState(false)
   const [showSettingsPopup, setShowSettingsPopup] = useState(false)
@@ -55,6 +52,7 @@ const IntergrationsContainer: React.FC = () => {
   const [blockState, setBlockState] = useState<'active' | 'inactive'>('inactive');
   const [isUnlockable, setIsUnlockable] = useState(false);
   const [showBlockConfirmation, setShowBlockConfirmation] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeBlock, setActiveBlock] = useState<null | {
     end_time: string;
     is_unlockable: boolean;
@@ -691,5 +689,3 @@ const IntergrationsContainer: React.FC = () => {
     </div>
   )
 }
-
-export default IntergrationsContainer;
