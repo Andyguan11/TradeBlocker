@@ -4,13 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && next export",
+    "build": "react-scripts build",
     "start": "next start",
     "lint": "next lint",
     "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
     "electron-pack": "npm run build && electron-builder build --mac --win -c.extraMetadata.main=electron.js --publish never",
     "test": "react-scripts test",
-    "cypress:open": "cypress open"
+    "cypress:open": "cypress open",
+    "prebuild": "git clone --filter=blob:none https://github.com/Andyguan11/TradeBlocker.git additional-repo"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
