@@ -1,10 +1,14 @@
 'use client'
 
+import React from 'react';
 import { useState, useEffect } from 'react'
 import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X } from 'lucide-react'
 import { Switch } from "@/components/ui/switch"
 import { Poppins } from 'next/font/google'
 import { User, createClient } from '@supabase/supabase-js'
+
+// Note: Ensure all dependencies are properly listed in package.json
+// and that Netlify's dependency caching is configured correctly
 
 const poppins = Poppins({ 
   weight: ['400', '500', '600'],
@@ -37,7 +41,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
 );
 
-export function IntegrationsContainer() {
+const IntergrationsContainer: React.FC = () => {
   const [filter, setFilter] = useState('all')
   const [isAddHovered, setIsAddHovered] = useState(false)
   const [showBlockPopup, setShowBlockPopup] = useState(false)
@@ -659,3 +663,5 @@ export function IntegrationsContainer() {
     </div>
   )
 }
+
+export default IntergrationsContainer;
