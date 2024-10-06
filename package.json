@@ -63,5 +63,8 @@
     "directories": {
       "buildResources": "assets"
     }
+  },
+  "engines": {
+    "node": ">=18.20.4"
   }
 }
