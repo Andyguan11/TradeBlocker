@@ -326,6 +326,7 @@ const IntergrationsContainer: React.FC = () => {
     const timer = setTimeout(() => {
       // ... existing code
     }, 500)
+    return () => clearTimeout(timer);
   };
 
   return (

@@ -1,7 +1,5 @@
 import "../styles/globals.css";
 import type { Metadata } from "next";
-import localFont from "next/font/local";
-import "../styles/globals.css";
 import { Poppins } from 'next/font/google';
 
 // Remove or comment out unused imports
@@ -29,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={poppins.className}>
       <body>{children}</body>
     </html>
   )
