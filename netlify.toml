@@ -8,6 +8,9 @@
 [context.deploy-preview]
   command = "npm install && npm run build"
 
+[build.environment]
+  RUBY_VERSION = "3.1.2"
+
 [[plugins]]
   package = "netlify-plugin-cache"
     [plugins.inputs]
