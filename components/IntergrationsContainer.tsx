@@ -1,11 +1,11 @@
 'use client'
 
 import React from 'react';
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X } from 'lucide-react'
 import { Switch } from "@/components/ui/switch"
 import { Poppins } from 'next/font/google'
-import { User, createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
 
 // Note: Ensure all dependencies are properly listed in package.json
 // and that Netlify's dependency caching is configured correctly
@@ -62,21 +62,7 @@ const IntergrationsContainer: React.FC = () => {
   const [totalBlocks, setTotalBlocks] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchUserAndSettings = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        await fetchUserSettings(user.id);
-      } else {
-        console.error('No user found');
-      }
-    };
-
-    fetchUserAndSettings();
-  }, []);
-
-  const fetchUserSettings = async (userId: string) => {
+  const fetchUserSettings = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('user_settings')
       .select('block_state, block_end_time, is_unlockable, total_blocks')
@@ -112,7 +98,20 @@ const IntergrationsContainer: React.FC = () => {
         console.log('Block is inactive');
       }
     }
-  };
+  }, [setTotalBlocks, setBlockState, setActiveBlock, setBlockDuration]);
+
+  useEffect(() => {
+    const fetchUserAndSettings = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        await fetchUserSettings(user.id);
+      } else {
+        console.error('No user found');
+      }
+    };
+    fetchUserAndSettings();
+  }, [fetchUserSettings]);
 
   const createUserSettings = async (userId: string) => {
     const { data, error } = await supabase
@@ -240,42 +239,42 @@ const IntergrationsContainer: React.FC = () => {
   };
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-    const checkBlockStatus = async () => {
-      if (userId && activeBlock) {
-        const now = new Date();
-        const endTime = new Date(activeBlock.end_time);
-        if (endTime <= now) {
-          // Block has expired
-          setActiveBlock(null);
-          setBlockState('inactive');
-          setBlockDuration({ days: '', hours: '', minutes: '' });
-          console.log('Block expired, new state:', 'inactive');
+    const timer = setTimeout(() => {
+      const checkBlockStatus = async () => {
+        if (userId && activeBlock) {
+          const now = new Date();
+          const endTime = new Date(activeBlock.end_time);
+          if (endTime <= now) {
+            // Block has expired
+            setActiveBlock(null);
+            setBlockState('inactive');
+            setBlockDuration({ days: '', hours: '', minutes: '' });
+            console.log('Block expired, new state:', 'inactive');
 
-          // Update the database
-          const { error } = await supabase
-            .from('user_settings')
-            .update({ 
-              block_state: 'inactive',
-              block_end_time: now.toISOString() 
-            })
-            .eq('user_id', userId);
+            // Update the database
+            const { error } = await supabase
+              .from('user_settings')
+              .update({ 
+                block_state: 'inactive',
+                block_end_time: now.toISOString() 
+              })
+              .eq('user_id', userId);
 
-          if (error) {
-            console.error('Error updating block state in database:', error);
+            if (error) {
+              console.error('Error updating block state in database:', error);
+            }
+          } else {
+            // Block is still active
+            setBlockState('active');
+            updateBlockDuration(endTime);
           }
-        } else {
-          // Block is still active
-          setBlockState('active');
-          updateBlockDuration(endTime);
         }
-      }
-    };
+      };
 
-    checkBlockStatus(); // Run immediately
-    timer = setInterval(checkBlockStatus, 60000); // Check every minute
+      checkBlockStatus(); // Run immediately
+    }, 500); // Check every minute
 
-    return () => clearInterval(timer);
+    return () => clearTimeout(timer);
   }, [userId, activeBlock]);
 
   // Add this useEffect to log state changes
