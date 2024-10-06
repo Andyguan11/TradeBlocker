@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/Sidebarbutton"
 import { Card } from "@/components/ui/SidebarCard"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Intergrationsvatar"
+import { Badge } from "@/components/ui/SidebarBadge"
 import { PlusIcon, ChevronRightIcon, PencilIcon, ChevronLeftIcon, Settings, X } from "lucide-react"
 import { supabase } from "../utils/supabaseClient"
-import { Avatar } from "./ui/Intergrationsvatar"
-import { AvatarFallback } from "@radix-ui/react-avatar"
 
 export function GlassySidebar() {
   const [isExpanded, setIsExpanded] = useState(false)

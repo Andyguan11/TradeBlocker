@@ -1,27 +1,36 @@
 // Note: If you're experiencing issues with cached dependencies,
 // consider adding a build-time check to ensure all dependencies are up-to-date
 
-// Remove or comment out unused functions
-// const checkDependencyVersions = () => { ... }
-// const checkPermissions = () => { ... }
+// Example function to check dependency versions (implement as needed)
+function checkDependencyVersions() {
+  // Add logic to verify dependency versions
+  console.log('Checking dependency versions');
+}
+
+// Call this function during the build process if needed
+// checkDependencyVersions();
 
 // Conditional import based on platform
 let permissionsHandler;
 if (process.platform === 'darwin') {
-  // Use dynamic import instead of require
-  import('node-mac-permissions').then(module => {
-    permissionsHandler = module.default;
-    // Use permissionsHandler here or export it
-  });
+  permissionsHandler = require('node-mac-permissions');
 } else if (process.platform === 'linux') {
-  // TODO: Implement Linux permissions handler
+  // Import a Linux-compatible permissions handler here
+  // permissionsHandler = require('linux-permissions-handler');
 } else {
   console.warn('Unsupported platform for permissions handling');
 }
 
-const main = async () => {
-  // TODO: Implement main function
-  // Use permissionsHandler here if needed
+// Example function to check permissions (implement as needed)
+function checkPermissions() {
+  if (permissionsHandler) {
+    // Use the appropriate permissions handler based on the platform
+    // Implementation will depend on the specific handler you're using
+    console.log('Checking permissions');
+  } else {
+    console.warn('Permissions checking not available on this platform');
+  }
 }
 
-export { main };
+// Call this function when needed in your application
+// checkPermissions();
