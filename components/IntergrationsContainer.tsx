@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react'
 import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X } from 'lucide-react'
 import { Switch } from "@/components/ui/switch"
 import { Poppins } from 'next/font/google'
-import { supabase } from '../utils/supabaseClient'
-import { User } from '@supabase/supabase-js'
+import { User, createClient } from '@supabase/supabase-js'
 
 const poppins = Poppins({ 
   weight: ['400', '500', '600'],
@@ -33,9 +32,13 @@ const apps: App[] = [
   }
 ]
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+);
+
 export function IntegrationsContainer() {
   const [filter, setFilter] = useState('all')
-  const [appStates, setAppStates] = useState(apps.map(app => app.active))
   const [isAddHovered, setIsAddHovered] = useState(false)
   const [showBlockPopup, setShowBlockPopup] = useState(false)
   const [showSettingsPopup, setShowSettingsPopup] = useState(false)
@@ -45,10 +48,9 @@ export function IntegrationsContainer() {
   const [showComingSoon, setShowComingSoon] = useState(false)
   const [showComingSoonIntegration, setShowComingSoonIntegration] = useState(false)
   const [blockDuration, setBlockDuration] = useState({ days: '', hours: '', minutes: '' });
-  const [blockState, setBlockState] = useState('inactive');
+  const [blockState, setBlockState] = useState<'active' | 'inactive'>('inactive');
   const [isUnlockable, setIsUnlockable] = useState(false);
   const [showBlockConfirmation, setShowBlockConfirmation] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeBlock, setActiveBlock] = useState<null | {
     end_time: string;
     is_unlockable: boolean;
@@ -276,6 +278,52 @@ export function IntegrationsContainer() {
   useEffect(() => {
     console.log('Block state changed:', blockState);
   }, [blockState]);
+
+  const handleBlockAllNow = async () => {
+    console.log('Activating block...');
+    const { data, error: userError } = await supabase.auth.getUser();
+    const user = data?.user;
+    
+    if (userError || !user) {
+      console.error('Error getting user:', userError);
+      return;
+    }
+
+    console.log('User ID:', user.id);
+
+    const { error } = await supabase
+      .from('user_settings')
+      .update({ 
+        block_state: 'active',
+        block_end_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Set block for 24 hours
+      })
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error updating block state:', error);
+    } else {
+      setBlockState('active');
+      console.log('Block state updated to active');
+      try {
+        const response = await fetch('/api/update-blocking-rules', { 
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            blockState: 'active'
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        console.log('Update blocking rules response:', await response.text());
+      } catch (error) {
+        console.error('Error updating blocking rules:', error);
+      }
+    }
+  };
 
   return (
     <div className={`w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden ${poppins.className}`}>
