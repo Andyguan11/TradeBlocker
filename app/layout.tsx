@@ -4,7 +4,9 @@ import localFont from "next/font/local";
 import "../styles/globals.css";
 import { Poppins } from 'next/font/google';
 
-// Remove or comment out these lines if they're not being used
+// import { GeistSans } from 'geist/font/sans'
+// import { GeistMono } from 'geist/font/mono'
+
 // const geistSans = GeistSans
 // const geistMono = GeistMono
 
@@ -25,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={poppins.className}>
+    <html lang="en">
       <body>{children}</body>
     </html>
   )
