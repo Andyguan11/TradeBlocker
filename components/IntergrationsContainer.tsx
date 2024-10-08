@@ -58,12 +58,14 @@ const IntergrationsContainer: React.FC = () => {
   }>(null);
   const [totalBlocks, setTotalBlocks] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userIdDisplay, setUserIdDisplay] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUserAndSettings = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
+        setUserIdDisplay(user.id);
         await fetchUserSettings(user.id);
       } else {
         console.error('No user found');
@@ -325,6 +327,31 @@ const IntergrationsContainer: React.FC = () => {
   const updateBlockState = (newState: 'active' | 'inactive') => {
     setBlockState(newState);
     console.log('Block state updated to:', newState);
+  };
+
+  const handleBlockNow = async () => {
+    try {
+      const response = await fetch('/api/block-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userId,
+          blockState: true,
+          duration: blockDuration, // Assume you have a state variable for this
+        }),
+      });
+
+      if (response.ok) {
+        // Update local state or show a success message
+        console.log('Block status updated successfully');
+      } else {
+        console.error('Failed to update block status');
+      }
+    } catch (error) {
+      console.error('Error updating block status:', error);
+    }
   };
 
   return (
@@ -655,6 +682,20 @@ const IntergrationsContainer: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {userIdDisplay && (
+          <div className="mt-6 p-4 bg-gray-100 rounded-lg">
+            <h3 className="text-lg font-semibold mb-2">Browser Extension Setup</h3>
+            <p className="mb-2">Your User ID: <span className="font-mono bg-white px-2 py-1 rounded">{userIdDisplay}</span></p>
+            <p className="text-sm text-gray-600">
+              1. Install our browser extension from the Chrome Web Store (link coming soon).
+              <br />
+              2. Click on the extension icon and enter your User ID.
+              <br />
+              3. The extension will now automatically apply your block settings.
+            </p>
           </div>
         )}
       </div>
