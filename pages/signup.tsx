@@ -23,7 +23,11 @@ export default function Signup() {
 
       alert('Signup successful! Please check your email for verification.');
     } catch (error) {
-      alert(error.message);
+      if (error instanceof Error) {
+        alert(error.message);
+      } else {
+        alert('An unknown error occurred');
+      }
     }
   };
 
