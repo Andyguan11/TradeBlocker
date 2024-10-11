@@ -1,11 +1,28 @@
 'use client'
 
 import { X } from "lucide-react"
-import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+);
 
 export function DashboardComponent() {
   const [isVisible, setIsVisible] = useState(true)
+  const [userIdDisplay, setUserIdDisplay] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserIdDisplay(user.id);
+      }
+    };
+
+    fetchUserId();
+  }, []);
 
   if (!isVisible) return null
 
@@ -37,15 +54,20 @@ export function DashboardComponent() {
           </div>
           <div className="flex-grow">
             <h2 className="text-base font-semibold text-gray-900 leading-tight">
-              Remember: Only one block can be active at a time.
+              Browser Extension Setup
             </h2>
-            <p className="text-xs text-gray-600 mt-1">
-              Lockable blocks cannot be cancelled once activated. Ensure your{" "}
-              <Link href="/settings" className="text-blue-600 hover:underline">
-                settings
-              </Link>{" "}
-              are correct before activating a block.
-            </p>
+            {userIdDisplay && (
+              <div className="mt-2">
+                <p className="text-sm text-gray-600">
+                  Your User ID: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{userIdDisplay}</span>
+                </p>
+                <ol className="list-decimal list-inside text-sm text-gray-600 mt-2 space-y-1">
+                  <li>Install our browser extension from the Chrome Web Store (link coming soon).</li>
+                  <li>Click on the extension icon and enter your User ID.</li>
+                  <li>The extension will now automatically apply your block settings.</li>
+                </ol>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -25,11 +25,10 @@ interface App {
 const apps: App[] = [
   {
     name: "TradingView",
-    domain: "tradingview.com",
     description: "",
     active: true,
     logo: "/tradingview.png",
-    accountSize: 10000  // Example account size
+    domain: ''
   }
 ]
 
@@ -501,6 +500,7 @@ const IntergrationsContainer: React.FC = () => {
                     value={limitType}
                     onChange={(e) => setLimitType(e.target.value as 'percentage' | 'value')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    disabled
                   >
                     <option value="percentage">Percentage (%)</option>
                     <option value="value">Value ($)</option>
@@ -517,6 +517,7 @@ const IntergrationsContainer: React.FC = () => {
                     onChange={(e) => setLossLimit(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     placeholder={`Enter loss limit ${limitType === 'percentage' ? '%' : '$'}`}
+                    disabled
                   />
                 </div>
                 <div>
@@ -530,22 +531,15 @@ const IntergrationsContainer: React.FC = () => {
                     onChange={(e) => setProfitLimit(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     placeholder={`Enter profit limit ${limitType === 'percentage' ? '%' : '$'}`}
+                    disabled
                   />
                 </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={handleSave}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={handleDisconnect}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors duration-200"
-                  >
-                    Disconnect
-                  </button>
-                </div>
+                <button
+                  className="w-full px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors duration-200 cursor-not-allowed"
+                  disabled
+                >
+                  Coming Soon
+                </button>
               </div>
             </div>
           </div>
@@ -711,20 +705,6 @@ const IntergrationsContainer: React.FC = () => {
                 </button>
               </div>
             </div>
-          </div>
-        )}
-
-        {userIdDisplay && (
-          <div className="mt-6 p-4 bg-gray-100 rounded-lg">
-            <h3 className="text-lg font-semibold mb-2">Browser Extension Setup</h3>
-            <p className="mb-2">Your User ID: <span className="font-mono bg-white px-2 py-1 rounded">{userIdDisplay}</span></p>
-            <p className="text-sm text-gray-600">
-              1. Install our browser extension from the Chrome Web Store (link coming soon).
-              <br />
-              2. Click on the extension icon and enter your User ID.
-              <br />
-              3. The extension will now automatically apply your block settings.
-            </p>
           </div>
         )}
       </div>

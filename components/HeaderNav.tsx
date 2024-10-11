@@ -65,11 +65,14 @@ const HeaderNav = () => {
   return (
     <header className="flex items-center justify-between px-4 py-2 bg-gradient-to-b from-gray-100 to-white border-b border-gray-200 shadow-sm relative">
       <div className="absolute inset-0 bg-white/40 backdrop-blur-xl -z-10" />
-      <div className="flex items-center space-x-4 z-10">
+      <div className="w-1/3">
+        {/* This empty div takes up 1/3 of the space */}
+      </div>
+      <div className="flex items-center space-x-4 z-10 w-1/3 justify-center">
         <Image src="/logo.png" alt="Logo" width={32} height={32} className="rounded-full" />
         <h1 className={`text-xl font-semibold ${poppins.className}`}>Dashboard</h1>
       </div>
-      <div className="flex items-center space-x-4 z-10">
+      <div className="flex items-center space-x-4 z-10 w-1/3 justify-end">
         <button className="p-2 rounded hover:bg-white/50 transition-colors duration-200 border border-gray-200">
           <Bell className="w-5 h-5 text-gray-600" />
         </button>
