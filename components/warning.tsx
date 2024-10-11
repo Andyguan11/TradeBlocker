@@ -27,14 +27,14 @@ export function DashboardComponent() {
   if (!isVisible) return null
 
   return (
-    <div className="w-full max-w-xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
-      <div className="p-4 relative">
+    <div className="w-full max-w-xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+      <div className="p-4 relative dark:text-white">
         <button
-          className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-100 transition-colors duration-200"
+          className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
           onClick={() => setIsVisible(false)}
           aria-label="Close"
         >
-          <X className="h-4 w-4 text-gray-500" />
+          <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
         </button>
         <div className="flex items-center space-x-3">
           <div className="flex-shrink-0">
@@ -53,15 +53,15 @@ export function DashboardComponent() {
             </svg>
           </div>
           <div className="flex-grow">
-            <h2 className="text-base font-semibold text-gray-900 leading-tight">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white leading-tight">
               Browser Extension Setup
             </h2>
             {userIdDisplay && (
               <div className="mt-2">
-                <p className="text-sm text-gray-600">
-                  Your User ID: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{userIdDisplay}</span>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Your User ID: <span className="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{userIdDisplay}</span>
                 </p>
-                <ol className="list-decimal list-inside text-sm text-gray-600 mt-2 space-y-1">
+                <ol className="list-decimal list-inside text-sm text-gray-600 dark:text-gray-300 mt-2 space-y-1">
                   <li>Install our browser extension from the Chrome Web Store (link coming soon).</li>
                   <li>Click on the extension icon and enter your User ID.</li>
                   <li>The extension will now automatically apply your block settings.</li>

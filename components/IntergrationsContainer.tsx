@@ -367,23 +367,23 @@ const IntergrationsContainer: React.FC = () => {
   };
 
   return (
-    <div className={`w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden ${poppins.className}`}>
+    <div className={`w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${poppins.className}`}>
       {/* Block now banner */}
-      <div className="bg-gradient-to-b from-red-50 to-white p-3 flex flex-col items-center justify-center">
+      <div className="bg-gradient-to-b from-red-50 to-white dark:from-red-900 dark:to-gray-800 p-3 flex flex-col items-center justify-center">
         {blockState === 'inactive' ? (
           <div 
             className="flex items-center space-x-2 cursor-pointer mb-2"
             onClick={() => blockState === 'inactive' && setShowBlockConfirmation(true)}
           >
-            <Shield className="w-5 h-5 text-red-500" />
-            <span className="text-sm font-medium text-red-700">Block All Now</span>
+            <Shield className="w-5 h-5 text-red-500 dark:text-red-400" />
+            <span className="text-sm font-medium text-red-700 dark:text-red-300">Block All Now</span>
           </div>
         ) : (
           <div className="flex flex-col items-center">
-            <div className="text-sm text-gray-600 mb-2">
+            <div className="text-sm text-gray-600 dark:text-gray-300 mb-2">
               Block active for: {formatBlockDuration(blockDuration)}
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 dark:text-gray-300">
               Total blocks: {totalBlocks}
             </div>
             {activeBlock?.is_unlockable && (
@@ -398,9 +398,9 @@ const IntergrationsContainer: React.FC = () => {
         )}
       </div>
 
-      <div className="p-6">
+      <div className="p-6 dark:text-white">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold text-gray-800">Connected Brokerages & Triggers</h1>
+          <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">Connected Brokerages & Triggers</h1>
           <div className="flex items-center space-x-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -455,14 +455,14 @@ const IntergrationsContainer: React.FC = () => {
           {apps
             .filter(app => filter === 'all' || (filter === 'active' && app.active) || (filter === 'inactive' && !app.active))
             .map((app, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200">
+              <div key={index} className="flex items-center justify-between p-4 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
                 <div className="flex items-center space-x-4">
                   <img src={app.logo} alt={`${app.name} logo`} className="w-12 h-12 rounded-xl" />
                   <div>
-                    <h2 className="font-semibold text-gray-800">{app.name}</h2>
-                    <p className="text-sm text-gray-500">{app.domain}</p>
+                    <h2 className="font-semibold text-gray-800 dark:text-gray-200">{app.name}</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{app.domain}</p>
                     {app.accountSize && (
-                      <p className="text-sm text-gray-500">Account size: ${app.accountSize.toLocaleString()}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Account size: ${app.accountSize.toLocaleString()}</p>
                     )}
                   </div>
                 </div>
@@ -481,33 +481,32 @@ const IntergrationsContainer: React.FC = () => {
         {/* Settings Popup */}
         {showSettingsPopup && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-96">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-96">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">TradingView Settings</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">TradingView Settings</h2>
                 <button 
                   onClick={() => setShowSettingsPopup(false)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Limit Type
                   </label>
                   <select
                     value={limitType}
                     onChange={(e) => setLimitType(e.target.value as 'percentage' | 'value')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   >
                     <option value="percentage">Percentage (%)</option>
                     <option value="value">Value ($)</option>
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="lossLimit" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="lossLimit" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Loss Limit
                   </label>
                   <input
@@ -515,13 +514,12 @@ const IntergrationsContainer: React.FC = () => {
                     id="lossLimit"
                     value={lossLimit}
                     onChange={(e) => setLossLimit(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     placeholder={`Enter loss limit ${limitType === 'percentage' ? '%' : '$'}`}
-                    disabled
                   />
                 </div>
                 <div>
-                  <label htmlFor="profitLimit" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="profitLimit" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Profit Limit
                   </label>
                   <input
@@ -529,13 +527,12 @@ const IntergrationsContainer: React.FC = () => {
                     id="profitLimit"
                     value={profitLimit}
                     onChange={(e) => setProfitLimit(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     placeholder={`Enter profit limit ${limitType === 'percentage' ? '%' : '$'}`}
-                    disabled
                   />
                 </div>
                 <button
-                  className="w-full px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors duration-200 cursor-not-allowed"
+                  className="w-full px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200 cursor-not-allowed"
                   disabled
                 >
                   Coming Soon
@@ -599,17 +596,17 @@ const IntergrationsContainer: React.FC = () => {
         {/* Coming Soon Integration Popup */}
         {showComingSoonIntegration && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-80">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Coming Soon</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Coming Soon</h2>
                 <button 
                   onClick={() => setShowComingSoonIntegration(false)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <p className="text-gray-600 mb-4">The ability to add new integrations is not yet available. Stay tuned for updates!</p>
+              <p className="text-gray-600 dark:text-gray-300 mb-4">The ability to add new integrations is not yet available. Stay tuned for updates!</p>
               <button
                 onClick={() => setShowComingSoonIntegration(false)}
                 className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
@@ -623,11 +620,11 @@ const IntergrationsContainer: React.FC = () => {
         {/* Block Configuration Popup */}
         {showBlockConfirmation && blockState === 'inactive' && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-96">
-              <h2 className="text-xl font-semibold mb-4">Configure Block</h2>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-96">
+              <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Configure Block</h2>
               <div className="space-y-4 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Block Duration
                   </label>
                   <div className="flex space-x-2">
@@ -635,7 +632,7 @@ const IntergrationsContainer: React.FC = () => {
                       type="number"
                       value={blockDuration.days}
                       onChange={(e) => setBlockDuration({...blockDuration, days: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       placeholder="Days"
                       min="0"
                     />
@@ -643,7 +640,7 @@ const IntergrationsContainer: React.FC = () => {
                       type="number"
                       value={blockDuration.hours}
                       onChange={(e) => setBlockDuration({...blockDuration, hours: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       placeholder="Hours"
                       min="0"
                       max="23"
@@ -652,7 +649,7 @@ const IntergrationsContainer: React.FC = () => {
                       type="number"
                       value={blockDuration.minutes}
                       onChange={(e) => setBlockDuration({...blockDuration, minutes: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       placeholder="Minutes"
                       min="0"
                       max="59"
@@ -665,8 +662,8 @@ const IntergrationsContainer: React.FC = () => {
                       checked={isUnlockable}
                       onCheckedChange={setIsUnlockable}
                       className={`${
-                        isUnlockable ? 'bg-blue-600' : 'bg-gray-200'
-                      } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                        isUnlockable ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                      } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                     >
                       <span
                         className={`${
@@ -674,11 +671,11 @@ const IntergrationsContainer: React.FC = () => {
                         } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
                       />
                     </Switch>
-                    <label className="text-sm font-medium text-gray-700">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Unlockable Block
                     </label>
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {isUnlockable 
                       ? "Unlockable: You can remove the block before the set duration ends."
                       : "Lockable: Once set, the block cannot be removed until the duration ends."}
@@ -688,7 +685,7 @@ const IntergrationsContainer: React.FC = () => {
               <div className="flex justify-end space-x-2">
                 <button 
                   onClick={() => setShowBlockConfirmation(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors duration-200"
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors duration-200"
                 >
                   Cancel
                 </button>
@@ -696,8 +693,8 @@ const IntergrationsContainer: React.FC = () => {
                   onClick={handleBlockActivation}
                   className={`px-4 py-2 text-white rounded transition-colors duration-200 ${
                     isDurationSet()
-                      ? 'bg-red-600 hover:bg-red-700'
-                      : 'bg-gray-400 cursor-not-allowed'
+                      ? 'bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600'
+                      : 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
                   }`}
                   disabled={!isDurationSet()}
                 >

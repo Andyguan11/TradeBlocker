@@ -58,14 +58,14 @@ export function GlassySidebar() {
   ]
 
   return (
-    <div className={`${isExpanded ? 'w-64' : 'w-20'} h-screen bg-gradient-to-b from-gray-100 to-white p-4 flex flex-col overflow-hidden relative transition-all duration-300 border-r border-gray-200`}>
-      <div className="absolute inset-0 bg-white/40 backdrop-blur-xl -z-10" />
+    <div className={`${isExpanded ? 'w-64' : 'w-20'} h-screen bg-gradient-to-b from-gray-100 to-white dark:from-gray-800 dark:to-gray-900 p-4 flex flex-col overflow-hidden relative transition-all duration-300 border-r border-gray-200 dark:border-gray-700`}>
+      <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-xl -z-10" />
       
       {isExpanded ? (
         <>
           <Button 
             onClick={toggleSidebar} 
-            className="absolute top-2 right-2 p-1 rounded-full bg-white/50 hover:bg-white/70 transition-colors z-10"
+            className="absolute top-2 right-2 p-1 rounded-full bg-white/50 dark:bg-gray-700/50 hover:bg-white/70 dark:hover:bg-gray-600/70 transition-colors z-10"
           >
             <ChevronLeftIcon className="h-4 w-4" />
           </Button>
@@ -181,7 +181,7 @@ export function GlassySidebar() {
       {/* Coming Soon Popup */}
       {showComingSoon && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-80">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Coming Soon</h2>
               <button 

@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, ChevronDown } from "lucide-react"
+import { Bell, ChevronDown, Moon, Sun } from "lucide-react"
 import Image from "next/image"
 import { useState, useEffect, useRef } from "react"
 import { supabase } from "../utils/supabaseClient"
@@ -17,12 +17,18 @@ const poppins = Poppins({
 const HeaderNav = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [firstName, setFirstName] = useState('')
+  const [darkMode, setDarkMode] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
   useEffect(() => {
     fetchUserData()
     document.addEventListener("mousedown", handleClickOutside)
+    const isDarkMode = localStorage.getItem('darkMode') === 'true'
+    setDarkMode(isDarkMode)
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark')
+    }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
@@ -62,36 +68,53 @@ const HeaderNav = () => {
     }
   }
 
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode
+    setDarkMode(newDarkMode)
+    localStorage.setItem('darkMode', newDarkMode.toString())
+    if (newDarkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }
+
   return (
-    <header className="flex items-center justify-between px-4 py-2 bg-gradient-to-b from-gray-100 to-white border-b border-gray-200 shadow-sm relative">
-      <div className="absolute inset-0 bg-white/40 backdrop-blur-xl -z-10" />
+    <header className="flex items-center justify-between px-4 py-2 bg-gradient-to-b from-gray-100 to-white dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm relative">
+      <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-xl -z-10" />
       <div className="w-1/3">
         {/* This empty div takes up 1/3 of the space */}
       </div>
       <div className="flex items-center space-x-4 z-10 w-1/3 justify-center">
         <Image src="/logo.png" alt="Logo" width={32} height={32} className="rounded-full" />
-        <h1 className={`text-xl font-semibold ${poppins.className}`}>Dashboard</h1>
+        <h1 className={`text-xl font-semibold ${poppins.className} text-gray-900 dark:text-white`}>Dashboard</h1>
       </div>
       <div className="flex items-center space-x-4 z-10 w-1/3 justify-end">
-        <button className="p-2 rounded hover:bg-white/50 transition-colors duration-200 border border-gray-200">
-          <Bell className="w-5 h-5 text-gray-600" />
+        <button 
+          className="p-2 rounded hover:bg-white/50 dark:hover:bg-gray-700 transition-colors duration-200 border border-gray-200 dark:border-gray-600"
+          onClick={toggleDarkMode}
+        >
+          {darkMode ? <Sun className="w-5 h-5 text-gray-600 dark:text-gray-300" /> : <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />}
         </button>
-        <div className="w-px h-6 bg-gray-300"></div>
+        <button className="p-2 rounded hover:bg-white/50 dark:hover:bg-gray-700 transition-colors duration-200 border border-gray-200 dark:border-gray-600">
+          <Bell className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+        </button>
+        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600"></div>
         <div className="relative" ref={dropdownRef}>
           <button 
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center space-x-2 hover:bg-white/50 rounded p-1 transition-colors duration-200 border border-gray-200"
+            className="flex items-center space-x-2 hover:bg-white/50 dark:hover:bg-gray-700 rounded p-1 transition-colors duration-200 border border-gray-200 dark:border-gray-600"
           >
-            <Avatar className="h-8 w-8 ring-2 ring-white shadow-sm">
+            <Avatar className="h-8 w-8 ring-2 ring-white dark:ring-gray-800 shadow-sm">
               <AvatarFallback>{firstName ? firstName[0].toUpperCase() : ''}</AvatarFallback>
             </Avatar>
-            <ChevronDown className="w-4 h-4 text-gray-600" />
+            <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-300" />
           </button>
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 border border-gray-200">
+            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-20 border border-gray-200 dark:border-gray-700">
               <button
                 onClick={handleLogout}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 Logout
               </button>
