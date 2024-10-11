@@ -148,7 +148,20 @@ const IntergrationsContainer: React.FC = () => {
     setShowSettingsPopup(false)
   }
 
+  const isDurationSet = () => {
+    return (
+      (blockDuration.days && parseInt(blockDuration.days) > 0) ||
+      (blockDuration.hours && parseInt(blockDuration.hours) > 0) ||
+      (blockDuration.minutes && parseInt(blockDuration.minutes) > 0)
+    );
+  };
+
   const handleBlockActivation = async () => {
+    if (!isDurationSet()) {
+      alert("Please set a duration for the block.");
+      return;
+    }
+
     if (!userId) {
       console.error('No user logged in');
       return;
@@ -618,7 +631,6 @@ const IntergrationsContainer: React.FC = () => {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg shadow-xl w-96">
               <h2 className="text-xl font-semibold mb-4">Configure Block</h2>
-              <p className="text-sm text-gray-600 mb-4">You can only have one active block at a time.</p>
               <div className="space-y-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -631,6 +643,7 @@ const IntergrationsContainer: React.FC = () => {
                       onChange={(e) => setBlockDuration({...blockDuration, days: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Days"
+                      min="0"
                     />
                     <input
                       type="number"
@@ -638,6 +651,8 @@ const IntergrationsContainer: React.FC = () => {
                       onChange={(e) => setBlockDuration({...blockDuration, hours: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Hours"
+                      min="0"
+                      max="23"
                     />
                     <input
                       type="number"
@@ -645,26 +660,35 @@ const IntergrationsContainer: React.FC = () => {
                       onChange={(e) => setBlockDuration({...blockDuration, minutes: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Minutes"
+                      min="0"
+                      max="59"
                     />
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={isUnlockable}
-                    onCheckedChange={setIsUnlockable}
-                    className={`${
-                      isUnlockable ? 'bg-blue-600' : 'bg-gray-200'
-                    } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
-                  >
-                    <span
+                <div className="flex flex-col space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={isUnlockable}
+                      onCheckedChange={setIsUnlockable}
                       className={`${
-                        isUnlockable ? 'translate-x-6' : 'translate-x-1'
-                      } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
-                    />
-                  </Switch>
-                  <label className="text-sm font-medium text-gray-700">
-                    Unlockable Block
-                  </label>
+                        isUnlockable ? 'bg-blue-600' : 'bg-gray-200'
+                      } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                    >
+                      <span
+                        className={`${
+                          isUnlockable ? 'translate-x-6' : 'translate-x-1'
+                        } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                      />
+                    </Switch>
+                    <label className="text-sm font-medium text-gray-700">
+                      Unlockable Block
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    {isUnlockable 
+                      ? "Unlockable: You can remove the block before the set duration ends."
+                      : "Lockable: Once set, the block cannot be removed until the duration ends."}
+                  </p>
                 </div>
               </div>
               <div className="flex justify-end space-x-2">
@@ -676,7 +700,12 @@ const IntergrationsContainer: React.FC = () => {
                 </button>
                 <button 
                   onClick={handleBlockActivation}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors duration-200"
+                  className={`px-4 py-2 text-white rounded transition-colors duration-200 ${
+                    isDurationSet()
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-gray-400 cursor-not-allowed'
+                  }`}
+                  disabled={!isDurationSet()}
                 >
                   Activate Block
                 </button>
