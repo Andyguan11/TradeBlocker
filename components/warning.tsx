@@ -1,6 +1,6 @@
 'use client'
 
-import { X } from "lucide-react"
+import { X, CheckCircle, XCircle } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from '@supabase/supabase-js'
 
@@ -12,6 +12,7 @@ const supabase = createClient(
 export function DashboardComponent() {
   const [isVisible, setIsVisible] = useState(true)
   const [userIdDisplay, setUserIdDisplay] = useState<string | null>(null)
+  const [isExtensionConnected, setIsExtensionConnected] = useState(false)
 
   useEffect(() => {
     const fetchUserId = async () => {
@@ -23,6 +24,36 @@ export function DashboardComponent() {
 
     fetchUserId();
   }, []);
+
+  useEffect(() => {
+    const checkExtensionConnection = async () => {
+      if (!userIdDisplay) return;
+
+      try {
+        const response = await fetch(`/api/check-extension-connection?userId=${userIdDisplay}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setIsExtensionConnected(data.isConnected);
+        } else {
+          console.error("Failed to check extension connection");
+          setIsExtensionConnected(false);
+        }
+      } catch (error) {
+        console.error("Error checking extension connection:", error);
+        setIsExtensionConnected(false);
+      }
+    };
+
+    if (userIdDisplay) {
+      checkExtensionConnection();
+    }
+  }, [userIdDisplay]);
 
   if (!isVisible) return null
 

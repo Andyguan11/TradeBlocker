@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useState, useEffect } from 'react'
-import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X } from 'lucide-react'
+import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X, CheckCircle, XCircle } from 'lucide-react'
 import { Switch } from "@/components/ui/switch"
 import { Poppins } from 'next/font/google'
 import { User, createClient } from '@supabase/supabase-js'
@@ -319,18 +319,7 @@ const IntergrationsContainer: React.FC = () => {
         throw error;
       }
 
-      // Remove the Cloudflare KV update
-      // const response = await fetch('/api/update-block-status', { ... });
-
-      setBlockState('active');
-      setActiveBlock({
-        end_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        is_unlockable: true, // or false, depending on your preference
-      });
       console.log('Block state updated to active');
-
-      // Force a refresh of the current page to apply the block immediately
-      window.location.reload();
     } catch (error) {
       console.error('Error updating block state:', error);
     }
@@ -366,6 +355,36 @@ const IntergrationsContainer: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('block-state-changes')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user_settings' }, handleBlockStateChange)
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
+  const handleBlockStateChange = (payload: any) => {
+    const newBlockState = payload.new.block_state
+    setBlockState(newBlockState)
+    if (newBlockState === 'active') {
+      setActiveBlock({
+        end_time: payload.new.block_end_time,
+        is_unlockable: payload.new.is_unlockable,
+      })
+    } else {
+      setActiveBlock(null)
+    }
+    // Instead of directly messaging the extension, we'll update a local storage item
+    // that the extension can listen for
+    localStorage.setItem('tradeBlockerState', JSON.stringify({
+      action: "updateBlockState",
+      isBlocked: newBlockState === 'active'
+    }));
+  }
+
   return (
     <div className={`w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${poppins.className}`}>
       {/* Block now banner */}
@@ -373,7 +392,7 @@ const IntergrationsContainer: React.FC = () => {
         {blockState === 'inactive' ? (
           <div 
             className="flex items-center space-x-2 cursor-pointer mb-2"
-            onClick={() => blockState === 'inactive' && setShowBlockConfirmation(true)}
+            onClick={() => setShowBlockConfirmation(true)}
           >
             <Shield className="w-5 h-5 text-red-500 dark:text-red-400" />
             <span className="text-sm font-medium text-red-700 dark:text-red-300">Block All Now</span>
@@ -400,7 +419,7 @@ const IntergrationsContainer: React.FC = () => {
 
       <div className="p-6 dark:text-white">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">Connected Brokerages & Triggers</h1>
+          <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">Brokerages & Triggers</h1>
           <div className="flex items-center space-x-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
