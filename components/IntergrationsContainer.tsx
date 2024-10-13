@@ -3,9 +3,10 @@
 import React from 'react';
 import { useState, useEffect } from 'react'
 import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X, CheckCircle, XCircle } from 'lucide-react'
-import { Switch } from "@/components/ui/switch"
 import { Poppins } from 'next/font/google'
 import { User, createClient } from '@supabase/supabase-js'
+import { Switch } from '@radix-ui/react-switch';
+import { Checkbox } from "@/components/ui/checkbox"
 
 const poppins = Poppins({ 
   weight: ['400', '500', '600'],
@@ -13,22 +14,21 @@ const poppins = Poppins({
   display: 'swap',
 })
 
+// Update the App interface
 interface App {
   name: string;
-  domain: string;
   description: string;
-  active: boolean;
   logo: string;
   accountSize?: number;
+  connected: boolean;
 }
 
 const apps: App[] = [
   {
     name: "TradingView",
-    description: "",
-    active: true,
+    description: "Real-time market data and analysis",
     logo: "/tradingview.png",
-    domain: ''
+    connected: true
   }
 ]
 
@@ -36,6 +36,14 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
 );
+
+// Add this new interface
+interface AvailablePlatform {
+  description: any;
+  name: string;
+  logo: string;
+  connected: boolean;
+}
 
 const IntergrationsContainer: React.FC = () => {
   const [filter, setFilter] = useState('all')
@@ -59,6 +67,36 @@ const IntergrationsContainer: React.FC = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [userIdDisplay, setUserIdDisplay] = useState<string | null>(null);
 
+  // Add these new state variables
+  const [showAddIntegrationModal, setShowAddIntegrationModal] = useState(false);
+  const [availablePlatforms, setAvailablePlatforms] = useState<AvailablePlatform[]>([
+    {
+      name: "TradingView", logo: "/tradingview.png", connected: true,
+      description: undefined
+    },
+    {
+      name: "Tradovate", logo: "/tradovate.png", connected: false,
+      description: undefined
+    },
+    {
+      name: "NinjaTrader", logo: "/Ninjatrader.png", connected: false,
+      description: undefined
+    },
+    {
+      name: "Metatrader5", logo: "/mt5.png", connected: false,
+      description: undefined
+    },
+    {
+      name: "Metatrader4", logo: "/mt4.png", connected: false,
+      description: undefined
+    },
+  ]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [integrations, setIntegrations] = useState<App[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const integrationsPerPage = 5;
+  const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(["TradingView"]);
+
   useEffect(() => {
     const fetchUserAndSettings = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -77,7 +115,7 @@ const IntergrationsContainer: React.FC = () => {
   const fetchUserSettings = async (userId: string) => {
     const { data, error } = await supabase
       .from('user_settings')
-      .select('block_state, block_end_time, is_unlockable, total_blocks')
+      .select('block_state, block_end_time, is_unlockable, total_blocks, connected_platforms')
       .eq('user_id', userId)
       .single();
 
@@ -95,6 +133,25 @@ const IntergrationsContainer: React.FC = () => {
       console.log('Fetched user settings:', data);
       setTotalBlocks(data.total_blocks || 0);
       setBlockState(data.block_state || 'inactive');
+      // Ensure TradingView is always included in connected platforms
+      const platforms = data.connected_platforms || [];
+      if (!platforms.includes("TradingView")) {
+        platforms.push("TradingView");
+      }
+      setConnectedPlatforms(platforms);
+      
+      // Update integrations based on connected platforms
+      const updatedIntegrations = platforms.map((platformName: string) => {
+        const platform = availablePlatforms.find(p => p.name === platformName);
+        return {
+          name: platformName,
+          description: platform ? platform.description : "Connected platform",
+          logo: platform ? platform.logo : "/default-logo.png",
+          connected: true
+        };
+      });
+      setIntegrations(updatedIntegrations);
+
       const now = new Date();
       const endTime = new Date(data.block_end_time);
       if (endTime > now && data.block_state === 'active') {
@@ -115,7 +172,11 @@ const IntergrationsContainer: React.FC = () => {
   const createUserSettings = async (userId: string) => {
     const { data, error } = await supabase
       .from('user_settings')
-      .insert({ user_id: userId, total_blocks: 0 })
+      .insert({ 
+        user_id: userId, 
+        total_blocks: 0, 
+        connected_platforms: ["TradingView"] // Include TradingView by default
+      })
       .select()
       .single();
 
@@ -123,6 +184,7 @@ const IntergrationsContainer: React.FC = () => {
       console.error('Error creating user settings:', error);
     } else {
       console.log('Created user settings:', data);
+      setConnectedPlatforms(["TradingView"]);
     }
   };
 
@@ -189,9 +251,6 @@ const IntergrationsContainer: React.FC = () => {
         throw error;
       }
 
-      // Remove the Cloudflare KV update
-      // const response = await fetch('/api/update-block-status', { ... });
-
       setActiveBlock({
         end_time: endTime.toISOString(),
         is_unlockable: isUnlockable,
@@ -200,6 +259,16 @@ const IntergrationsContainer: React.FC = () => {
       setTotalBlocks(totalBlocks + 1);
       updateBlockDuration(endTime);
       setShowBlockConfirmation(false);
+
+      // Send message to extension with updated block information
+      const blockInfo = {
+        action: "updateBlockState",
+        isBlocked: true,
+        endTime: endTime.toISOString(),
+        blockedPlatforms: connectedPlatforms
+      };
+      localStorage.setItem('tradeBlockerState', JSON.stringify(blockInfo));
+
       console.log('Block activated, new state:', 'active', 'end time:', endTime);
     } catch (error) {
       console.error('Error activating block:', error);
@@ -385,6 +454,79 @@ const IntergrationsContainer: React.FC = () => {
     }));
   }
 
+  const handleAddIntegration = () => {
+    setShowAddIntegrationModal(true);
+  };
+
+  const handleCloseAddIntegrationModal = () => {
+    setShowAddIntegrationModal(false);
+    setSelectedPlatforms([]);
+  };
+
+  const handleSelectPlatform = (platformName: string) => {
+    setSelectedPlatforms(prev => 
+      prev.includes(platformName) 
+        ? prev.filter(name => name !== platformName)
+        : [...prev, platformName]
+    );
+  };
+
+  const handleConfirmAddIntegrations = async () => {
+    const newIntegrations = selectedPlatforms.map(platformName => {
+      const platform = availablePlatforms.find(p => p.name === platformName);
+      return {
+        name: platform!.name,
+        description: "New integration",
+        logo: platform!.logo,
+        connected: true
+      };
+    });
+
+    const updatedConnectedPlatforms = [...connectedPlatforms, ...selectedPlatforms];
+
+    // Update the database
+    const { error } = await supabase
+      .from('user_settings')
+      .update({ connected_platforms: updatedConnectedPlatforms })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error updating connected platforms:', error);
+    } else {
+      setConnectedPlatforms(updatedConnectedPlatforms);
+      setIntegrations(prev => [...prev, ...newIntegrations]);
+      handleCloseAddIntegrationModal();
+    }
+  };
+
+  const handleRemovePlatform = async (platformName: string) => {
+    if (platformName === "TradingView") {
+      console.log("TradingView cannot be removed as it's a default integration.");
+      return;
+    }
+
+    const updatedConnectedPlatforms = connectedPlatforms.filter(name => name !== platformName);
+    
+    // Update the database
+    const { error } = await supabase
+      .from('user_settings')
+      .update({ connected_platforms: updatedConnectedPlatforms })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error updating connected platforms:', error);
+    } else {
+      setConnectedPlatforms(updatedConnectedPlatforms);
+      setIntegrations(prev => prev.filter(integration => integration.name !== platformName));
+    }
+  };
+
+  const indexOfLastIntegration = currentPage * integrationsPerPage;
+  const indexOfFirstIntegration = indexOfLastIntegration - integrationsPerPage;
+  const currentIntegrations = integrations.slice(indexOfFirstIntegration, indexOfLastIntegration);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
   return (
     <div className={`w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${poppins.className}`}>
       {/* Block now banner */}
@@ -420,19 +562,7 @@ const IntergrationsContainer: React.FC = () => {
       <div className="p-6 dark:text-white">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">Brokerages & Triggers</h1>
-          <div className="flex items-center space-x-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <button className="p-2 rounded-lg hover:bg-gray-100 border border-gray-300">
-              <SlidersHorizontal className="text-gray-600 w-5 h-5" />
-            </button>
-          </div>
+          {/* Remove the search bar and filter icon */}
         </div>
 
         <div className="flex justify-between items-center mb-6">
@@ -444,23 +574,17 @@ const IntergrationsContainer: React.FC = () => {
               View all
             </button>
             <button
-              className={`px-4 py-2 rounded-full text-sm font-medium ${filter === 'active' ? 'bg-gray-100 text-gray-600' : 'bg-transparent text-gray-600'}`}
-              onClick={() => setFilter('active')}
+              className={`px-4 py-2 rounded-full text-sm font-medium ${filter === 'connected' ? 'bg-gray-100 text-gray-600' : 'bg-transparent text-gray-600'}`}
+              onClick={() => setFilter('connected')}
             >
-              Actived
-            </button>
-            <button
-              className={`px-4 py-2 rounded-full text-sm font-medium ${filter === 'inactive' ? 'bg-gray-100 text-gray-600' : 'bg-transparent text-gray-600'}`}
-              onClick={() => setFilter('inactive')}
-            >
-              Inactive
+              Connected
             </button>
           </div>
           <button 
             className={`p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-all duration-300 flex items-center ${isAddHovered ? 'px-4' : ''}`}
             onMouseEnter={() => setIsAddHovered(true)}
             onMouseLeave={() => setIsAddHovered(false)}
-            onClick={() => setShowComingSoonIntegration(true)}
+            onClick={handleAddIntegration}
           >
             <Plus className="w-5 h-5" />
             {isAddHovered && (
@@ -471,31 +595,52 @@ const IntergrationsContainer: React.FC = () => {
           </button>
         </div>
         <div className="space-y-4">
-          {apps
-            .filter(app => filter === 'all' || (filter === 'active' && app.active) || (filter === 'inactive' && !app.active))
+          {currentIntegrations
+            .filter(app => filter === 'all' || (filter === 'connected' && app.connected))
             .map((app, index) => (
               <div key={index} className="flex items-center justify-between p-4 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
                 <div className="flex items-center space-x-4">
                   <img src={app.logo} alt={`${app.name} logo`} className="w-12 h-12 rounded-xl" />
                   <div>
                     <h2 className="font-semibold text-gray-800 dark:text-gray-200">{app.name}</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{app.domain}</p>
-                    {app.accountSize && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Account size: ${app.accountSize.toLocaleString()}</p>
-                    )}
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
                   <button 
-                    className="p-1 rounded-full hover:bg-gray-100"
+                    className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600"
                     onClick={() => setShowSettingsPopup(true)}
                   >
                     <MoreVertical className="text-gray-400 w-5 h-5" />
                   </button>
+                  {app.name !== "TradingView" && (
+                    <button 
+                      className="px-2 py-1 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                      onClick={() => handleRemovePlatform(app.name)}
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
         </div>
+
+        {/* Pagination */}
+        {integrations.length > integrationsPerPage && (
+          <div className="flex justify-center mt-4">
+            {Array.from({ length: Math.ceil(integrations.length / integrationsPerPage) }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => paginate(i + 1)}
+                className={`mx-1 px-3 py-1 rounded ${
+                  currentPage === i + 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Settings Popup */}
         {showSettingsPopup && (
@@ -700,6 +845,16 @@ const IntergrationsContainer: React.FC = () => {
                       : "Lockable: Once set, the block cannot be removed until the duration ends."}
                   </p>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Platforms to be blocked:
+                  </label>
+                  <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400">
+                    {connectedPlatforms.map((platform) => (
+                      <li key={platform}>{platform}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
               <div className="flex justify-end space-x-2">
                 <button 
@@ -720,6 +875,55 @@ const IntergrationsContainer: React.FC = () => {
                   Activate Block
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Integration Modal */}
+        {showAddIntegrationModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-96 max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add Integrations</h2>
+                <button 
+                  onClick={handleCloseAddIntegrationModal}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-4 mb-4">
+                {availablePlatforms.map(platform => (
+                  <div 
+                    key={platform.name}
+                    className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <Checkbox
+                      id={`checkbox-${platform.name}`}
+                      checked={selectedPlatforms.includes(platform.name) || connectedPlatforms.includes(platform.name)}
+                      onCheckedChange={() => handleSelectPlatform(platform.name)}
+                      disabled={connectedPlatforms.includes(platform.name)}
+                    />
+                    <img src={platform.logo} alt={`${platform.name} logo`} className="w-8 h-8" />
+                    <label
+                      htmlFor={`checkbox-${platform.name}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {platform.name}
+                    </label>
+                    {connectedPlatforms.includes(platform.name) && (
+                      <span className="text-green-500 text-sm">Connected</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={handleConfirmAddIntegrations}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
+                disabled={selectedPlatforms.length === 0}
+              >
+                Add Selected Integrations
+              </button>
             </div>
           </div>
         )}

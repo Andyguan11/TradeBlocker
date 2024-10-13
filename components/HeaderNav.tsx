@@ -87,7 +87,7 @@ const HeaderNav = () => {
       </div>
       <div className="flex items-center space-x-4 z-10 w-1/3 justify-center">
         <Image src="/logo.png" alt="Logo" width={32} height={32} className="rounded-full" />
-        <h1 className={`text-xl font-semibold ${poppins.className} text-gray-900 dark:text-white`}>Dashboard</h1>
+        <h1 className={`text-xl font-semibold ${poppins.className} text-gray-900 dark:text-white`}>Dashboard(Beta)</h1>
       </div>
       <div className="flex items-center space-x-4 z-10 w-1/3 justify-end">
         <button 

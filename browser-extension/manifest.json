@@ -5,17 +5,25 @@
   "description": "Enforce Trading discipline",
   "permissions": [
     "storage",
-    "tabs"
+    "declarativeNetRequest"
   ],
   "host_permissions": [
-    "*://*.tradingview.com/*"
+    "*://*.tradingview.com/*",
+    "*://*.ninjatrader.com/*",
+    "*://*.tradovate.com/*",
+    "*://*.metatrader.app/*"
   ],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["*://*.tradingview.com/*"],
+      "matches": [
+        "*://*.tradingview.com/*",
+        "*://*.ninjatrader.com/*",
+        "*://*.tradovate.com/*",
+        "*://*.metatrader.app/*"
+      ],
       "js": ["content.js"]
     }
   ],

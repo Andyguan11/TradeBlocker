@@ -1,10 +1,12 @@
 const SUPABASE_URL = 'https://piyqyopfzdrtnhjaapvu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpeXF5b3BmemRydG5oamFhcHZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjcyOTkxMzQsImV4cCI6MjA0Mjg3NTEzNH0.6rxtaB3yu9jM_9Si6E265D82mXUSPfB_iKXmdhkMM7c';
-const CHECK_INTERVAL = 5000; // Check every 5 seconds
+const CHECK_INTERVAL = 3000; // Check every 3 seconds
 
 let isBlocked = false;
 let userId = null;
 let isSetup = false;
+let blockEndTime = null;
+let blockedPlatforms = [];
 
 async function checkBlockStatus(userId) {
   try {
@@ -80,7 +82,12 @@ async function updateExtensionConnectionStatus(userId, isConnected) {
 }
 
 function broadcastBlockState() {
-  chrome.tabs.query({url: '*://*.tradingview.com/*'}, (tabs) => {
+  chrome.tabs.query({url: [
+    '*://*.tradingview.com/*',
+    '*://*.ninjatrader.com/*',
+    '*://*.tradovate.com/*',
+    '*://*.metatrader.app/*'
+  ]}, (tabs) => {
     tabs.forEach(tab => {
       chrome.tabs.sendMessage(tab.id, { action: "updateBlockState", isBlocked });
     });
@@ -118,6 +125,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === "checkSetupStatus") {
     sendResponse({ isSetup });
     return true;
+  } else if (request.action === "updateBlockState") {
+    isBlocked = request.isBlocked;
+    blockEndTime = new Date(request.endTime);
+    blockedPlatforms = request.blockedPlatforms;
+    updateBlockStatus();
+    return true;
   }
   return true;
 });
@@ -125,7 +138,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 setInterval(updateBlockState, CHECK_INTERVAL);
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab.url.includes('tradingview.com')) {
+  if (changeInfo.status === 'complete' && 
+      (tab.url.includes('tradingview.com') || 
+       tab.url.includes('ninjatrader.com') || 
+       tab.url.includes('tradovate.com') || 
+       tab.url.includes('metatrader.app'))) {
     chrome.tabs.sendMessage(tabId, { action: "updateBlockState", isBlocked });
   }
 });
@@ -142,4 +159,55 @@ async function updateBlockState() {
 
   // Update extension connection status in Supabase
   await updateExtensionConnectionStatus(userId, true);
+}
+
+function updateBlockStatus() {
+  if (isBlocked && new Date() < blockEndTime) {
+    chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: [1, 2, 3, 4, 5],
+      addRules: [
+        {
+          id: 1,
+          priority: 1,
+          action: { type: "block" },
+          condition: {
+            urlFilter: "||tradingview.com",
+            resourceTypes: ["main_frame"]
+          }
+        },
+        {
+          id: 2,
+          priority: 1,
+          action: { type: "block" },
+          condition: {
+            urlFilter: "||web.ninjatrader.com",
+            resourceTypes: ["main_frame"]
+          }
+        },
+        {
+          id: 3,
+          priority: 1,
+          action: { type: "block" },
+          condition: {
+            urlFilter: "||trader.tradovate.com",
+            resourceTypes: ["main_frame"]
+          }
+        },
+        {
+          id: 4,
+          priority: 1,
+          action: { type: "block" },
+          condition: {
+            urlFilter: "||web.metatrader.app/terminal",
+            resourceTypes: ["main_frame"]
+          }
+        }
+      ].filter(rule => blockedPlatforms.some(platform => rule.condition.urlFilter.includes(platform.toLowerCase())))
+    });
+  } else {
+    chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: [1, 2, 3, 4, 5]
+    });
+    isBlocked = false;
+  }
 }
