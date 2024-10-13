@@ -1,24 +1,33 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, JSX } from "react"
 import { Button } from "@/components/ui/Sidebarbutton"
 import { Card } from "@/components/ui/SidebarCard"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Intergrationsvatar"
 import { Badge } from "@/components/ui/SidebarBadge"
 import { PlusIcon, ChevronRightIcon, PencilIcon, ChevronLeftIcon, Settings, X } from "lucide-react"
 import { supabase } from "../utils/supabaseClient"
+import { useRouter } from 'next/router'
 
 export function GlassySidebar() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [selectedItem, setSelectedItem] = useState('Dashboard')
   const [firstName, setFirstName] = useState('')
   const [showComingSoon, setShowComingSoon] = useState(false)
+  const router = useRouter()
 
   const toggleSidebar = () => setIsExpanded(!isExpanded)
 
   useEffect(() => {
     fetchUserData()
-  }, [])
+    // Set the selected item based on the current route
+    const path = router.pathname
+    if (path === '/dashboard') {
+      setSelectedItem('Dashboard')
+    } else if (path === '/settings') {
+      setSelectedItem('Settings')
+    }
+  }, [router.pathname])
 
   const fetchUserData = async () => {
     try {
@@ -27,7 +36,6 @@ export function GlassySidebar() {
 
       if (user) {
         console.log("User found:", user)
-        // The display name is stored in user.user_metadata.full_name
         const fullName = user.user_metadata?.full_name || user.email || 'User'
         const firstName = fullName.split(' ')[0]
         setFirstName(firstName)
@@ -47,9 +55,14 @@ export function GlassySidebar() {
         <rect x="14" y="14" width="7" height="7" />
         <rect x="3" y="14" width="7" height="7" />
       </svg>
-    )},
-    { name: 'Settings', icon: <Settings className="h-5 w-5 mr-3" /> },
+    ), path: '/dashboard' },
+    { name: 'Settings', icon: <Settings className="h-5 w-5 mr-3" />, path: '/settings' },
   ]
+
+  const handleItemClick = (item: { name: any; icon?: JSX.Element; path: any }) => {
+    setSelectedItem(item.name)
+    router.push(item.path)
+  }
 
   return (
     <div className={`${isExpanded ? 'w-64' : 'w-20'} h-screen flex-shrink-0 bg-gradient-to-b from-gray-100 to-white dark:from-gray-800 dark:to-gray-900 p-4 flex flex-col overflow-hidden relative transition-all duration-300 border-r border-gray-200 dark:border-gray-700`}>
@@ -89,7 +102,7 @@ export function GlassySidebar() {
                       ? "bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/50"
                       : "hover:bg-white/50"
                   } transition-colors`}
-                  onClick={() => setSelectedItem(item.name)}
+                  onClick={() => handleItemClick(item)}
                 >
                   {item.icon}
                   {item.name}
@@ -113,7 +126,7 @@ export function GlassySidebar() {
                   ? "bg-blue-500 text-white shadow-lg shadow-blue-500/50"
                   : "hover:bg-white/50"
               } transition-colors`}
-              onClick={() => setSelectedItem(item.name)}
+              onClick={() => handleItemClick(item)}
             >
               <div className="h-5 w-5">
                 {item.icon}
