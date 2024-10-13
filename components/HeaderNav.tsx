@@ -96,10 +96,6 @@ const HeaderNav = () => {
         >
           {darkMode ? <Sun className="w-5 h-5 text-gray-600 dark:text-gray-300" /> : <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />}
         </button>
-        <button className="p-2 rounded hover:bg-white/50 dark:hover:bg-gray-700 transition-colors duration-200 border border-gray-200 dark:border-gray-600">
-          <Bell className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-        </button>
-        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600"></div>
         <div className="relative" ref={dropdownRef}>
           <button 
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}

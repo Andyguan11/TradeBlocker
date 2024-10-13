@@ -28,16 +28,18 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="flex h-screen overflow-hidden">
       <GlassySidebar />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <HeaderNav />
-        <main className="flex-1 p-6 overflow-auto">
-          <div className="mb-6">
-            <DashboardComponent />
-          </div>
-          <div className="w-full lg:w-1/2">
-            <IntegrationsContainer />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900">
+          <div className="py-8">
+            <div className="mb-6 px-4">
+              <DashboardComponent />
+            </div>
+            <div className="w-full lg:w-1/2 pl-4">
+              <IntegrationsContainer />
+            </div>
           </div>
         </main>
       </div>
