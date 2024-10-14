@@ -27,7 +27,6 @@
     "clsx": "^2.1.1",
     "http": "^0.0.1-security",
     "lucide-react": "^0.446.0",
-    "minimatch": "^3.1.2",
     "next": "latest",
     "next-themes": "^0.3.0",
     "react": "latest",
@@ -36,7 +35,8 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "url": "^0.11.4",
-    "yup": "^1.4.0"
+    "yup": "^1.4.0",
+    "minimatch": "^3.1.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.7",
@@ -53,14 +53,14 @@
     "electron-is-dev": "^3.0.1",
     "eslint": "^8",
     "eslint-config-next": "14.2.13",
-    "netlify-plugin-cache": "^1.0.3",
     "postcss": "latest",
     "spectron": "^19.0.0",
     "tailwindcss": "latest",
     "typescript": "^5",
     "wait-on": "^8.0.1",
     "webpack": "^5.95.0",
-    "webpack-cli": "^5.1.4"
+    "webpack-cli": "^5.1.4",
+    "netlify-plugin-cache": "^1.0.3"
   },
   "main": "electron.js",
   "build": {
