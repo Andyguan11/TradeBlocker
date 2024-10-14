@@ -99,6 +99,7 @@ const IntergrationsContainer: React.FC = () => {
 
   useEffect(() => {
     const fetchUserAndSettings = async () => {
+      setIsLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
@@ -107,6 +108,7 @@ const IntergrationsContainer: React.FC = () => {
       } else {
         console.error('No user found');
       }
+      setIsLoading(false);
     };
 
     fetchUserAndSettings();
@@ -284,7 +286,6 @@ const IntergrationsContainer: React.FC = () => {
     if (!userId || !activeBlock) return;
 
     try {
-      // Update Supabase
       const { error } = await supabase
         .from('user_settings')
         .update({ 
@@ -297,13 +298,19 @@ const IntergrationsContainer: React.FC = () => {
         throw error;
       }
 
-      // Remove the Cloudflare KV update
-      // const response = await fetch('/api/update-block-status', { ... });
-
       setActiveBlock(null);
       setBlockState('inactive');
       setBlockDuration({ days: '', hours: '', minutes: '' });
       console.log('Block deactivated');
+
+      // Send message to extension with updated block information
+      const blockInfo = {
+        action: "updateBlockState",
+        isBlocked: false,
+        endTime: null,
+        blockedPlatforms: []
+      };
+      localStorage.setItem('tradeBlockerState', JSON.stringify(blockInfo));
     } catch (error) {
       console.error('Error removing block:', error);
     }
@@ -938,6 +945,11 @@ const IntergrationsContainer: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* Add this at the bottom of the component, outside any conditional rendering */}
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-4 text-center">
+              Select platforms to block in the main dashboard
+            </p>
           </div>
         </>
       )}
