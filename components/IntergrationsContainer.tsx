@@ -945,11 +945,6 @@ const IntergrationsContainer: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {/* Add this at the bottom of the component, outside any conditional rendering */}
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-4 text-center">
-              Select platforms to block in the main dashboard
-            </p>
           </div>
         </>
       )}
