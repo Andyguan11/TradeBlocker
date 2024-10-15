@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X, CheckCircle, XCircle } from 'lucide-react'
 import { Poppins } from 'next/font/google'
-import { User, createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
 import { Switch } from '@radix-ui/react-switch';
 import { Checkbox } from "@/components/ui/checkbox"
 import Image from 'next/image';
@@ -625,7 +625,11 @@ const IntergrationsContainer: React.FC = () => {
                 .map((app, index) => (
                   <div key={index} className="flex items-center justify-between p-4 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
                     <div className="flex items-center space-x-4">
-                      <Image src={app.logo} alt={`${app.name} logo`} className="w-12 h-12 rounded-xl" width={48} height={48} />
+                      <img
+                        src={app.logo}
+                        alt={`${app.name} logo`}
+                        className="h-6 w-6 rounded-full"
+                      />
                       <div>
                         <h2 className="font-semibold text-gray-800 dark:text-gray-200">{app.name}</h2>
                       </div>
