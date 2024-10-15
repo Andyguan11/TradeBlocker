@@ -30,7 +30,7 @@ const supabase = createClient(
 
 // Add this new interface
 interface AvailablePlatform {
-  description: any;
+  description: string;
   name: string;
   logo: string;
   connected: boolean;
@@ -62,23 +62,23 @@ const IntergrationsContainer: React.FC = () => {
   const [availablePlatforms] = useState<AvailablePlatform[]>([
     {
       name: "TradingView", logo: "/tradingview.png", connected: true,
-      description: undefined
+      description: "Connected platform"
     },
     {
       name: "Tradovate", logo: "/tradovate.png", connected: false,
-      description: undefined
+      description: "Connected platform"
     },
     {
       name: "NinjaTrader", logo: "/Ninjatrader.png", connected: false,
-      description: undefined
+      description: "Connected platform"
     },
     {
       name: "Metatrader5", logo: "/mt5.png", connected: false,
-      description: undefined
+      description: "Connected platform"
     },
     {
       name: "Metatrader4", logo: "/mt4.png", connected: false,
-      description: undefined
+      description: "Connected platform"
     },
   ]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
@@ -351,68 +351,6 @@ const IntergrationsContainer: React.FC = () => {
     console.log('Block state changed:', blockState);
   }, [blockState]);
 
-  const handleBlockAllNow = async () => {
-    console.log('Activating block...');
-    const { data, error: userError } = await supabase.auth.getUser();
-    const user = data?.user;
-    
-    if (userError || !user) {
-      console.error('Error getting user:', userError);
-      return;
-    }
-  
-    console.log('User ID:', user.id);
-  
-    try {
-      // Update Supabase
-      const { error } = await supabase
-        .from('user_settings')
-        .update({ 
-          block_state: 'active',
-          block_end_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Set block for 24 hours
-        })
-        .eq('user_id', user.id);
-  
-      if (error) {
-        throw error;
-      }
-
-      console.log('Block state updated to active');
-    } catch (error) {
-      console.error('Error updating block state:', error);
-    }
-  };
-
-  const updateBlockState = (newState: 'active' | 'inactive') => {
-    setBlockState(newState);
-    console.log('Block state updated to:', newState);
-  };
-
-  const handleBlockNow = async () => {
-    try {
-      const response = await fetch('/api/block-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: userId,
-          blockState: true,
-          duration: blockDuration, // Assume you have a state variable for this
-        }),
-      });
-
-      if (response.ok) {
-        // Update local state or show a success message
-        console.log('Block status updated successfully');
-      } else {
-        console.error('Failed to update block status');
-      }
-    } catch (error) {
-      console.error('Error updating block status:', error);
-    }
-  };
-
   useEffect(() => {
     const channel = supabase
       .channel('block-state-changes')
@@ -463,13 +401,16 @@ const IntergrationsContainer: React.FC = () => {
   const handleConfirmAddIntegrations = async () => {
     const newIntegrations = selectedPlatforms.map(platformName => {
       const platform = availablePlatforms.find(p => p.name === platformName);
-      return {
-        name: platform!.name,
-        description: "New integration",
-        logo: platform!.logo,
-        connected: true
-      };
-    });
+      if (platform) {
+        return {
+          name: platform.name,
+          description: "New integration",
+          logo: platform.logo,
+          connected: true
+        };
+      }
+      return null;
+    }).filter((integration): integration is App => integration !== null);
 
     const updatedConnectedPlatforms = [...connectedPlatforms, ...selectedPlatforms];
 
@@ -522,12 +463,12 @@ const IntergrationsContainer: React.FC = () => {
     }
   }, [userId, fetchUserSettings]);
   const handleBlockAllToggle = () => {
-    const newBlockAllState = !blockState;
+    const newBlockAllState = blockState === 'inactive';
     setBlockState(newBlockAllState ? 'active' : 'inactive');
     
     if (newBlockAllState) {
       const timer = setTimeout(() => {
-        setBlockAll(false);
+        setBlockState('inactive');
       }, 5000);
       
       return () => clearTimeout(timer);
@@ -613,10 +554,12 @@ const IntergrationsContainer: React.FC = () => {
                 .map((app, index) => (
                   <div key={index} className="flex items-center justify-between p-4 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
                     <div className="flex items-center space-x-4">
-                      <img
+                      <Image
                         src={app.logo}
                         alt={`${app.name} logo`}
                         className="h-6 w-6 rounded-full"
+                        width={24}
+                        height={24}
                       />
                       <div>
                         <h2 className="font-semibold text-gray-800 dark:text-gray-200">{app.name}</h2>
@@ -955,7 +898,3 @@ const IntergrationsContainer: React.FC = () => {
 }
 
 export default IntergrationsContainer;
-
-function setBlockAll(arg0: boolean) {
-  throw new Error('Function not implemented.');
-}
