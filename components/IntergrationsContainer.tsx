@@ -309,8 +309,7 @@ const IntergrationsContainer: React.FC = () => {
   };
 
   useEffect(() => {
-    let timer: NodeJS.Timeout | undefined;
-    const checkBlockStatus = async () => {
+    const timer = setInterval(async () => {
       if (userId && activeBlock) {
         const now = new Date();
         const endTime = new Date(activeBlock.end_time);
@@ -320,9 +319,8 @@ const IntergrationsContainer: React.FC = () => {
           setBlockState('inactive');
           setBlockDuration({ days: '', hours: '', minutes: '' });
           console.log('Block expired, new state:', 'inactive');
-
           // Update the database
-          const { error } = await supabase
+          const { data, error } = await supabase
             .from('user_settings')
             .update({ 
               block_state: 'inactive',
@@ -339,13 +337,10 @@ const IntergrationsContainer: React.FC = () => {
           updateBlockDuration(endTime);
         }
       }
-    };
-
-    checkBlockStatus(); // Run immediately
-    timer = setInterval(checkBlockStatus, 60000); // Check every minute
+    }, 60000);
 
     return () => {
-      if (timer) clearInterval(timer);
+      clearInterval(timer);
     };
   }, [userId, activeBlock]);
 
