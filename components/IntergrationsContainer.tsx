@@ -465,18 +465,6 @@ const IntergrationsContainer: React.FC = () => {
       fetchUserSettings(userId);
     }
   }, [userId, fetchUserSettings]);
-  const handleBlockAllToggle = () => {
-    const newBlockAllState = blockState === 'inactive';
-    setBlockState(newBlockAllState ? 'active' : 'inactive');
-    
-    if (newBlockAllState) {
-      const timer = setTimeout(() => {
-        setBlockState('inactive');
-      }, 5000);
-      
-      return () => clearTimeout(timer);
-    }
-  };
 
   return (
     <div className={`w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${poppins.className}`}>
