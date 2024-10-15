@@ -101,7 +101,7 @@ const IntergrationsContainer: React.FC = () => {
       setIsLoading(false);
     };
     fetchUserAndSettings();
-  }, []);
+  }, []); // Remove fetchUserSettings from the dependency array
 
   const fetchUserSettings = useCallback(async (userId: string) => {
     setIsLoading(true);
@@ -124,6 +124,7 @@ const IntergrationsContainer: React.FC = () => {
 
     if (data) {
       console.log('Fetched user settings:', data);
+      // Use the data
       setTotalBlocks(data.total_blocks || 0);
       setBlockState(data.block_state || 'inactive');
       // Ensure TradingView is always included in connected platforms
@@ -889,7 +890,7 @@ const IntergrationsContainer: React.FC = () => {
             )}
           </div>
           <p className="text-sm text-gray-500 mt-2">
-            {"Don't see the app you're looking for? Let us know and we'll add it!"}
+            {`Don't see the app you're looking for? Let us know and we'll add it!`}
           </p>
         </>
       )}
