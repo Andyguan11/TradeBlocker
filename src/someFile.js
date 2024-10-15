@@ -2,10 +2,12 @@
 // consider adding a build-time check to ensure all dependencies are up-to-date
 
 // Example function to check dependency versions (implement as needed)
-function checkDependencyVersions() {
+/*
+const checkDependencyVersions = () => {
   // Add logic to verify dependency versions
   console.log('Checking dependency versions');
-}
+};
+*/
 
 // Call this function during the build process if needed
 // checkDependencyVersions();
@@ -22,7 +24,8 @@ if (process.platform === 'darwin') {
 }
 
 // Example function to check permissions (implement as needed)
-function checkPermissions() {
+/*
+const checkPermissions = () => {
   if (permissionsHandler) {
     // Use the appropriate permissions handler based on the platform
     // Implementation will depend on the specific handler you're using
@@ -30,7 +33,11 @@ function checkPermissions() {
   } else {
     console.warn('Permissions checking not available on this platform');
   }
-}
+};
+*/
 
 // Call this function when needed in your application
 // checkPermissions();
+
+// Replace require with import
+import fs from 'fs';

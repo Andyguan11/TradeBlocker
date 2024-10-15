@@ -5,7 +5,6 @@ import { DashboardComponent } from '../components/warning';
 import { GlassySidebar } from '../components/Sidebar';
 import IntegrationsContainer from '../components/IntergrationsContainer';
 import { supabase } from '../utils/supabaseClient';
-import { InstalledApps } from '../components/InstalledApps';
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
@@ -29,20 +28,17 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="flex h-screen overflow-hidden">
       <GlassySidebar />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <HeaderNav />
-        <main className="flex-1 p-6 overflow-auto">
-          <div className="mb-6">
-            <DashboardComponent />
-          </div>
-          <div className="flex flex-wrap">
-            <div className="w-full lg:w-1/2 pr-3 mb-6">
-              <IntegrationsContainer />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900">
+          <div className="py-8">
+            <div className="mb-6 px-4">
+              <DashboardComponent />
             </div>
-            <div className="w-full lg:w-1/2 pl-3 mb-6">
-              <InstalledApps />
+            <div className="w-full lg:w-1/2 pl-4">
+              <IntegrationsContainer />
             </div>
           </div>
         </main>
