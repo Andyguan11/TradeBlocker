@@ -541,8 +541,10 @@ const IntergrationsContainer: React.FC = () => {
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   useEffect(() => {
-    fetchUserSettings();
-  }, [fetchUserSettings]); // Add fetchUserSettings to the dependency array
+    if (userId) {
+      fetchUserSettings(userId);
+    }
+  }, [userId, fetchUserSettings]);
 
   return (
     <div className={`w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${poppins.className}`}>
