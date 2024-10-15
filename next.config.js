@@ -1,13 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  async rewrites() {
-    return [
-      {
-        source: '/api/check-extension-connection',
-        destination: '/api/check-extension-connection',
-      },
-    ]
+  webpack: (config, { isServer }) => {
+    // Add any custom webpack configurations here if needed
+    return config
   },
 }
 
