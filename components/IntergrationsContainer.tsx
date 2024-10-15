@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X } from 'lucide-react'
+import { MoreVertical, Plus, Shield, X } from 'lucide-react'
 import { Poppins } from 'next/font/google'
 import { createClient } from '@supabase/supabase-js'
 import { Switch } from '@radix-ui/react-switch';
@@ -56,11 +56,10 @@ const IntergrationsContainer: React.FC = () => {
   }>(null);
   const [totalBlocks, setTotalBlocks] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
-  const [userIdDisplay, setUserIdDisplay] = useState<string | null>(null);
 
-  // Add these new state variables
+  // Remove unused state variables
   const [showAddIntegrationModal, setShowAddIntegrationModal] = useState(false);
-  const [availablePlatforms, setAvailablePlatforms] = useState<AvailablePlatform[]>([
+  const [availablePlatforms] = useState<AvailablePlatform[]>([
     {
       name: "TradingView", logo: "/tradingview.png", connected: true,
       description: undefined
@@ -95,14 +94,12 @@ const IntergrationsContainer: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        setUserIdDisplay(user.id);
         await fetchUserSettings(user.id);
       } else {
         console.error('No user found');
       }
       setIsLoading(false);
     };
-
     fetchUserAndSettings();
   }, []);
 
@@ -164,7 +161,7 @@ const IntergrationsContainer: React.FC = () => {
       }
     }
     setIsLoading(false);
-  }, []);
+  }, [availablePlatforms]);
 
   const createUserSettings = async (userId: string) => {
     setIsLoading(true);
@@ -427,8 +424,8 @@ const IntergrationsContainer: React.FC = () => {
     }
   }, [])
 
-  const handleBlockStateChange = (payload: any) => {
-    const newBlockState = payload.new.block_state
+  const handleBlockStateChange = (payload: { new: { block_state: string; block_end_time: string; is_unlockable: boolean } }) => {
+    const newBlockState = payload.new.block_state as 'active' | 'inactive'
     setBlockState(newBlockState)
     if (newBlockState === 'active') {
       setActiveBlock({
@@ -524,6 +521,18 @@ const IntergrationsContainer: React.FC = () => {
       fetchUserSettings(userId);
     }
   }, [userId, fetchUserSettings]);
+  const handleBlockAllToggle = () => {
+    const newBlockAllState = !blockState;
+    setBlockState(newBlockAllState ? 'active' : 'inactive');
+    
+    if (newBlockAllState) {
+      const timer = setTimeout(() => {
+        setBlockAll(false);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  };
 
   return (
     <div className={`w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${poppins.className}`}>
@@ -936,6 +945,9 @@ const IntergrationsContainer: React.FC = () => {
               </div>
             )}
           </div>
+          <p className="text-sm text-gray-500 mt-2">
+            {"Don't see the app you're looking for? Let us know and we'll add it!"}
+          </p>
         </>
       )}
     </div>
@@ -943,3 +955,7 @@ const IntergrationsContainer: React.FC = () => {
 }
 
 export default IntergrationsContainer;
+
+function setBlockAll(arg0: boolean) {
+  throw new Error('Function not implemented.');
+}
