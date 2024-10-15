@@ -309,7 +309,7 @@ const IntergrationsContainer: React.FC = () => {
   };
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: NodeJS.Timeout | undefined;
     const checkBlockStatus = async () => {
       if (userId && activeBlock) {
         const now = new Date();
@@ -344,7 +344,9 @@ const IntergrationsContainer: React.FC = () => {
     checkBlockStatus(); // Run immediately
     timer = setInterval(checkBlockStatus, 60000); // Check every minute
 
-    return () => clearInterval(timer);
+    return () => {
+      if (timer) clearInterval(timer);
+    };
   }, [userId, activeBlock]);
 
   // Add this useEffect to log state changes
