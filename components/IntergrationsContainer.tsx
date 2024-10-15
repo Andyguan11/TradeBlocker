@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X, CheckCircle, XCircle } from 'lucide-react'
+import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X } from 'lucide-react'
 import { Poppins } from 'next/font/google'
 import { createClient } from '@supabase/supabase-js'
 import { Switch } from '@radix-ui/react-switch';
@@ -22,15 +22,6 @@ interface App {
   accountSize?: number;
   connected: boolean;
 }
-
-const apps: App[] = [
-  {
-    name: "TradingView",
-    description: "Real-time market data and analysis",
-    logo: "/tradingview.png",
-    connected: true
-  }
-]
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
@@ -204,18 +195,6 @@ const IntergrationsContainer: React.FC = () => {
       minutes: Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60)).toString(),
     });
   };
-
-  const handleSave = () => {
-    // Add save logic here
-    console.log('Saving:', { lossLimit, profitLimit })
-    setShowSettingsPopup(false)
-  }
-
-  const handleDisconnect = () => {
-    // Add disconnect logic here
-    console.log('Disconnecting')
-    setShowSettingsPopup(false)
-  }
 
   const isDurationSet = () => {
     return (
