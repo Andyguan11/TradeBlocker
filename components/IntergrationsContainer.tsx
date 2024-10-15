@@ -1,6 +1,9 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react/no-unescaped-entities */
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MoreVertical, Plus, Shield, X } from 'lucide-react'
 import { Poppins } from 'next/font/google'
 import { createClient } from '@supabase/supabase-js'
@@ -87,6 +90,50 @@ const IntergrationsContainer: React.FC = () => {
   const integrationsPerPage = 5;
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(["TradingView"]);
   const [isLoading, setIsLoading] = useState(true);
+  const fetchUserSettingsRef = useRef<(userId: string) => Promise<void>>();
+
+  fetchUserSettingsRef.current = useCallback(async (userId: string) => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('block_state, block_end_time, is_unlockable, total_blocks, connected_platforms')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        console.log('No user settings found, creating new settings');
+        await createUserSettings(userId);
+      } else {
+        console.error('Error fetching user settings:', error);
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    if (data) {
+      console.log('Fetched user settings:', data);
+      setTotalBlocks(data.total_blocks || 0);
+      setBlockState(data.block_state || 'inactive');
+      const platforms = data.connected_platforms || [];
+      if (!platforms.includes("TradingView")) {
+        platforms.push("TradingView");
+      }
+      setConnectedPlatforms(platforms);
+      
+      // Update integrations based on connected platforms
+      const updatedIntegrations = platforms.map((platformName: string) => {
+        const platform = availablePlatforms.find(p => p.name === platformName);
+        return {
+          name: platformName,
+          description: platform ? platform.description : "Connected platform",
+          logo: platform ? platform.logo : "/default-logo.png",
+        };
+      });
+      setIntegrations(updatedIntegrations);
+    }
+    setIsLoading(false);
+  }, [availablePlatforms]);
 
   useEffect(() => {
     const fetchUserAndSettings = async () => {
@@ -94,14 +141,18 @@ const IntergrationsContainer: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        await fetchUserSettings(user.id);
+        if (fetchUserSettingsRef.current) {
+          await fetchUserSettingsRef.current(user.id);
+        } else {
+          console.error('fetchUserSettingsRef.current is undefined');
+        }
       } else {
         console.error('No user found');
       }
       setIsLoading(false);
     };
     fetchUserAndSettings();
-  }, []); // Remove fetchUserSettings from the dependency array
+  }, []);
 
   const fetchUserSettings = useCallback(async (userId: string) => {
     setIsLoading(true);
