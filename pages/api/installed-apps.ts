@@ -1,13 +1,28 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse } from 'next';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+type InstalledApp = {
+  name: string;
+  id: string;
+  // Add other properties as needed
+}
+
+type InstalledAppsResponse = {
+  installedApps: InstalledApp[];
+  platform?: string;
+  error?: string;
+}
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<InstalledAppsResponse>
+) {
   try {
     const platform = process.platform;
-    let apps = [];
+    let apps: InstalledApp[] = [];
 
     switch (platform) {
       case 'win32':
@@ -24,9 +39,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         throw new Error('Unsupported platform');
     }
 
-    res.status(200).json({ platform, apps });
+    res.status(200).json({ installedApps: apps, platform });
   } catch (error) {
     console.error('Error fetching installed apps:', error);
-    res.status(500).json({ error: 'Failed to fetch installed apps' });
+    res.status(500).json({ installedApps: [], error: 'Failed to fetch installed apps' });
   }
 }

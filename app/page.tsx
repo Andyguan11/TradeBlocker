@@ -63,7 +63,7 @@ export default function AuthPage() {
     setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }))
   }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsLoading(true)
     setError('')

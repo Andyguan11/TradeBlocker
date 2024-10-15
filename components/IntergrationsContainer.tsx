@@ -1,14 +1,12 @@
 'use client'
 
-import React from 'react';
-import { useState, useEffect } from 'react'
-import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X } from 'lucide-react'
-import { Switch } from "@/components/ui/switch"
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X, CheckCircle, XCircle } from 'lucide-react'
 import { Poppins } from 'next/font/google'
 import { User, createClient } from '@supabase/supabase-js'
-
-// Note: Ensure all dependencies are properly listed in package.json
-// and that Netlify's dependency caching is configured correctly
+import { Switch } from '@radix-ui/react-switch';
+import { Checkbox } from "@/components/ui/checkbox"
+import Image from 'next/image';
 
 const poppins = Poppins({ 
   weight: ['400', '500', '600'],
@@ -16,23 +14,21 @@ const poppins = Poppins({
   display: 'swap',
 })
 
+// Update the App interface
 interface App {
   name: string;
-  domain: string;
   description: string;
-  active: boolean;
   logo: string;
   accountSize?: number;
+  connected: boolean;
 }
 
 const apps: App[] = [
   {
     name: "TradingView",
-    domain: "tradingview.com",
-    description: "",
-    active: true,
+    description: "Real-time market data and analysis",
     logo: "/tradingview.png",
-    accountSize: 10000  // Example account size
+    connected: true
   }
 ]
 
@@ -40,6 +36,14 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
 );
+
+// Add this new interface
+interface AvailablePlatform {
+  description: any;
+  name: string;
+  logo: string;
+  connected: boolean;
+}
 
 const IntergrationsContainer: React.FC = () => {
   const [filter, setFilter] = useState('all')
@@ -61,25 +65,61 @@ const IntergrationsContainer: React.FC = () => {
   }>(null);
   const [totalBlocks, setTotalBlocks] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userIdDisplay, setUserIdDisplay] = useState<string | null>(null);
+
+  // Add these new state variables
+  const [showAddIntegrationModal, setShowAddIntegrationModal] = useState(false);
+  const [availablePlatforms, setAvailablePlatforms] = useState<AvailablePlatform[]>([
+    {
+      name: "TradingView", logo: "/tradingview.png", connected: true,
+      description: undefined
+    },
+    {
+      name: "Tradovate", logo: "/tradovate.png", connected: false,
+      description: undefined
+    },
+    {
+      name: "NinjaTrader", logo: "/Ninjatrader.png", connected: false,
+      description: undefined
+    },
+    {
+      name: "Metatrader5", logo: "/mt5.png", connected: false,
+      description: undefined
+    },
+    {
+      name: "Metatrader4", logo: "/mt4.png", connected: false,
+      description: undefined
+    },
+  ]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [integrations, setIntegrations] = useState<App[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const integrationsPerPage = 5;
+  const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(["TradingView"]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserAndSettings = async () => {
+      setIsLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
+        setUserIdDisplay(user.id);
         await fetchUserSettings(user.id);
       } else {
         console.error('No user found');
       }
+      setIsLoading(false);
     };
 
     fetchUserAndSettings();
   }, []);
 
-  const fetchUserSettings = async (userId: string) => {
+  const fetchUserSettings = useCallback(async (userId: string) => {
+    setIsLoading(true);
     const { data, error } = await supabase
       .from('user_settings')
-      .select('block_state, block_end_time, is_unlockable, total_blocks')
+      .select('block_state, block_end_time, is_unlockable, total_blocks, connected_platforms')
       .eq('user_id', userId)
       .single();
 
@@ -90,6 +130,7 @@ const IntergrationsContainer: React.FC = () => {
       } else {
         console.error('Error fetching user settings:', error);
       }
+      setIsLoading(false);
       return;
     }
 
@@ -97,6 +138,25 @@ const IntergrationsContainer: React.FC = () => {
       console.log('Fetched user settings:', data);
       setTotalBlocks(data.total_blocks || 0);
       setBlockState(data.block_state || 'inactive');
+      // Ensure TradingView is always included in connected platforms
+      const platforms = data.connected_platforms || [];
+      if (!platforms.includes("TradingView")) {
+        platforms.push("TradingView");
+      }
+      setConnectedPlatforms(platforms);
+      
+      // Update integrations based on connected platforms
+      const updatedIntegrations = platforms.map((platformName: string) => {
+        const platform = availablePlatforms.find(p => p.name === platformName);
+        return {
+          name: platformName,
+          description: platform ? platform.description : "Connected platform",
+          logo: platform ? platform.logo : "/default-logo.png",
+          connected: true
+        };
+      });
+      setIntegrations(updatedIntegrations);
+
       const now = new Date();
       const endTime = new Date(data.block_end_time);
       if (endTime > now && data.block_state === 'active') {
@@ -112,12 +172,18 @@ const IntergrationsContainer: React.FC = () => {
         console.log('Block is inactive');
       }
     }
-  };
+    setIsLoading(false);
+  }, []);
 
   const createUserSettings = async (userId: string) => {
+    setIsLoading(true);
     const { data, error } = await supabase
       .from('user_settings')
-      .insert({ user_id: userId, total_blocks: 0 })
+      .insert({ 
+        user_id: userId, 
+        total_blocks: 0, 
+        connected_platforms: ["TradingView"]
+      })
       .select()
       .single();
 
@@ -125,7 +191,9 @@ const IntergrationsContainer: React.FC = () => {
       console.error('Error creating user settings:', error);
     } else {
       console.log('Created user settings:', data);
+      setConnectedPlatforms(["TradingView"]);
     }
+    setIsLoading(false);
   };
 
   const updateBlockDuration = (endTime: Date) => {
@@ -149,7 +217,20 @@ const IntergrationsContainer: React.FC = () => {
     setShowSettingsPopup(false)
   }
 
+  const isDurationSet = () => {
+    return (
+      (blockDuration.days && parseInt(blockDuration.days) > 0) ||
+      (blockDuration.hours && parseInt(blockDuration.hours) > 0) ||
+      (blockDuration.minutes && parseInt(blockDuration.minutes) > 0)
+    );
+  };
+
   const handleBlockActivation = async () => {
+    if (!isDurationSet()) {
+      alert("Please set a duration for the block.");
+      return;
+    }
+
     if (!userId) {
       console.error('No user logged in');
       return;
@@ -160,68 +241,79 @@ const IntergrationsContainer: React.FC = () => {
     endTime.setHours(endTime.getHours() + (parseInt(blockDuration.hours) || 0));
     endTime.setMinutes(endTime.getMinutes() + (parseInt(blockDuration.minutes) || 0));
 
-    // First, get the current total_blocks value
-    const { data: currentData, error: fetchError } = await supabase
-      .from('user_settings')
-      .select('total_blocks')
-      .eq('user_id', userId)
-      .single();
+    try {
+      // Update Supabase
+      const { data, error } = await supabase
+        .from('user_settings')
+        .update({
+          block_state: 'active',
+          block_end_time: endTime.toISOString(),
+          is_unlockable: isUnlockable,
+          total_blocks: totalBlocks + 1
+        })
+        .eq('user_id', userId)
+        .select()
+        .single();
 
-    if (fetchError) {
-      console.error('Error fetching current total_blocks:', fetchError);
-      return;
-    }
+      if (error) {
+        throw error;
+      }
 
-    const currentTotalBlocks = currentData?.total_blocks || 0;
-    const newTotalBlocks = currentTotalBlocks + 1;
-
-    // Now update the user_settings with the new values
-    const { data, error } = await supabase
-      .from('user_settings')
-      .update({
-        block_state: 'active',
-        block_end_time: endTime.toISOString(),
-        is_unlockable: isUnlockable,
-        total_blocks: newTotalBlocks
-      })
-      .eq('user_id', userId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error saving block data:', error);
-    } else {
-      console.log('Updated user settings:', data);
       setActiveBlock({
         end_time: endTime.toISOString(),
         is_unlockable: isUnlockable,
       });
       setBlockState('active');
-      setTotalBlocks(newTotalBlocks);
+      setTotalBlocks(totalBlocks + 1);
       updateBlockDuration(endTime);
       setShowBlockConfirmation(false);
+
+      // Send message to extension with updated block information
+      const blockInfo = {
+        action: "updateBlockState",
+        isBlocked: true,
+        endTime: endTime.toISOString(),
+        blockedPlatforms: connectedPlatforms
+      };
+      localStorage.setItem('tradeBlockerState', JSON.stringify(blockInfo));
+
       console.log('Block activated, new state:', 'active', 'end time:', endTime);
+    } catch (error) {
+      console.error('Error activating block:', error);
     }
   };
 
   const handleUnblock = async () => {
     if (!userId || !activeBlock) return;
 
-    const { error } = await supabase
-      .from('user_settings')
-      .update({ 
-        block_state: 'inactive',
-        block_end_time: new Date().toISOString() 
-      })
-      .eq('user_id', userId);
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .update({ 
+          block_state: 'inactive',
+          block_end_time: new Date().toISOString() 
+        })
+        .eq('user_id', userId);
 
-    if (error) {
-      console.error('Error removing block:', error);
-    } else {
+      if (error) {
+        throw error;
+      }
+
       setActiveBlock(null);
       setBlockState('inactive');
       setBlockDuration({ days: '', hours: '', minutes: '' });
       console.log('Block deactivated');
+
+      // Send message to extension with updated block information
+      const blockInfo = {
+        action: "updateBlockState",
+        isBlocked: false,
+        endTime: null,
+        blockedPlatforms: []
+      };
+      localStorage.setItem('tradeBlockerState', JSON.stringify(blockInfo));
+    } catch (error) {
+      console.error('Error removing block:', error);
     }
   };
 
@@ -292,63 +384,26 @@ const IntergrationsContainer: React.FC = () => {
       console.error('Error getting user:', userError);
       return;
     }
-
+  
     console.log('User ID:', user.id);
-
-    const { error } = await supabase
-      .from('user_settings')
-      .update({ 
-        block_state: 'active',
-        block_end_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Set block for 24 hours
-      })
-      .eq('user_id', user.id);
-
-    if (error) {
-      console.error('Error updating block state:', error);
-    } else {
-      setBlockState('active');
-      console.log('Block state updated to active');
-      try {
-        const response = await fetch('/api/update-blocking-rules', { 
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            blockState: 'active'
-          })
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        console.log('Update blocking rules response:', await response.text());
-      } catch (error) {
-        console.error('Error updating blocking rules:', error);
-      }
-    }
-  };
-
-  const customFetch = async (url: string, options: RequestInit = {}) => {
-    const { data } = await supabase.auth.getUser();
-    const user = data?.user;
-    if (user) {
-      options.headers = {
-        ...options.headers,
-        'X-User-ID': user.id,
-      };
-    } else {
-      console.log('No user found');
-    }
-    const workerUrl = `https://tradingview-blocker.andy-393.workers.dev?url=${encodeURIComponent(url)}`;
-    console.log('Fetching from Worker URL:', workerUrl);
+  
     try {
-      const response = await fetch(workerUrl, options);
-      console.log('Response from Worker:', response.status, response.statusText);
-      return response;
+      // Update Supabase
+      const { error } = await supabase
+        .from('user_settings')
+        .update({ 
+          block_state: 'active',
+          block_end_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Set block for 24 hours
+        })
+        .eq('user_id', user.id);
+  
+      if (error) {
+        throw error;
+      }
+
+      console.log('Block state updated to active');
     } catch (error) {
-      console.error('Error fetching from Worker:', error);
-      throw error;
+      console.error('Error updating block state:', error);
     }
   };
 
@@ -357,337 +412,547 @@ const IntergrationsContainer: React.FC = () => {
     console.log('Block state updated to:', newState);
   };
 
+  const handleBlockNow = async () => {
+    try {
+      const response = await fetch('/api/block-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userId,
+          blockState: true,
+          duration: blockDuration, // Assume you have a state variable for this
+        }),
+      });
+
+      if (response.ok) {
+        // Update local state or show a success message
+        console.log('Block status updated successfully');
+      } else {
+        console.error('Failed to update block status');
+      }
+    } catch (error) {
+      console.error('Error updating block status:', error);
+    }
+  };
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('block-state-changes')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user_settings' }, handleBlockStateChange)
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
+  const handleBlockStateChange = (payload: any) => {
+    const newBlockState = payload.new.block_state
+    setBlockState(newBlockState)
+    if (newBlockState === 'active') {
+      setActiveBlock({
+        end_time: payload.new.block_end_time,
+        is_unlockable: payload.new.is_unlockable,
+      })
+    } else {
+      setActiveBlock(null)
+    }
+    // Instead of directly messaging the extension, we'll update a local storage item
+    // that the extension can listen for
+    localStorage.setItem('tradeBlockerState', JSON.stringify({
+      action: "updateBlockState",
+      isBlocked: newBlockState === 'active'
+    }));
+  }
+
+  const handleAddIntegration = () => {
+    setShowAddIntegrationModal(true);
+  };
+
+  const handleCloseAddIntegrationModal = () => {
+    setShowAddIntegrationModal(false);
+    setSelectedPlatforms([]);
+  };
+
+  const handleSelectPlatform = (platformName: string) => {
+    setSelectedPlatforms(prev => 
+      prev.includes(platformName) 
+        ? prev.filter(name => name !== platformName)
+        : [...prev, platformName]
+    );
+  };
+
+  const handleConfirmAddIntegrations = async () => {
+    const newIntegrations = selectedPlatforms.map(platformName => {
+      const platform = availablePlatforms.find(p => p.name === platformName);
+      return {
+        name: platform!.name,
+        description: "New integration",
+        logo: platform!.logo,
+        connected: true
+      };
+    });
+
+    const updatedConnectedPlatforms = [...connectedPlatforms, ...selectedPlatforms];
+
+    // Update the database
+    const { error } = await supabase
+      .from('user_settings')
+      .update({ connected_platforms: updatedConnectedPlatforms })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error updating connected platforms:', error);
+    } else {
+      setConnectedPlatforms(updatedConnectedPlatforms);
+      setIntegrations(prev => [...prev, ...newIntegrations]);
+      handleCloseAddIntegrationModal();
+    }
+  };
+
+  const handleRemovePlatform = async (platformName: string) => {
+    if (platformName === "TradingView") {
+      console.log("TradingView cannot be removed as it's a default integration.");
+      return;
+    }
+
+    const updatedConnectedPlatforms = connectedPlatforms.filter(name => name !== platformName);
+    
+    // Update the database
+    const { error } = await supabase
+      .from('user_settings')
+      .update({ connected_platforms: updatedConnectedPlatforms })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error updating connected platforms:', error);
+    } else {
+      setConnectedPlatforms(updatedConnectedPlatforms);
+      setIntegrations(prev => prev.filter(integration => integration.name !== platformName));
+    }
+  };
+
+  const indexOfLastIntegration = currentPage * integrationsPerPage;
+  const indexOfFirstIntegration = indexOfLastIntegration - integrationsPerPage;
+  const currentIntegrations = integrations.slice(indexOfFirstIntegration, indexOfLastIntegration);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  useEffect(() => {
+    fetchUserSettings();
+  }, [fetchUserSettings]); // Add fetchUserSettings to the dependency array
+
   return (
-    <div className={`w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden ${poppins.className}`}>
-      {/* Block now banner */}
-      <div className="bg-gradient-to-b from-red-50 to-white p-3 flex flex-col items-center justify-center">
-        {blockState === 'inactive' ? (
-          <div 
-            className="flex items-center space-x-2 cursor-pointer mb-2"
-            onClick={() => blockState === 'inactive' && setShowBlockConfirmation(true)}
-          >
-            <Shield className="w-5 h-5 text-red-500" />
-            <span className="text-sm font-medium text-red-700">Block All Now</span>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center">
-            <div className="text-sm text-gray-600 mb-2">
-              Block active for: {formatBlockDuration(blockDuration)}
-            </div>
-            <div className="text-sm text-gray-600">
-              Total blocks: {totalBlocks}
-            </div>
-            {activeBlock?.is_unlockable && (
-              <button
-                onClick={handleUnblock}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200 mt-2"
+    <div className={`w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${poppins.className}`}>
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 dark:border-white"></div>
+        </div>
+      ) : (
+        <>
+          {/* Block now banner */}
+          <div className="bg-gradient-to-b from-red-50 to-white dark:from-red-900 dark:to-gray-800 p-3 flex flex-col items-center justify-center">
+            {blockState === 'inactive' ? (
+              <div 
+                className="flex items-center space-x-2 cursor-pointer mb-2"
+                onClick={() => setShowBlockConfirmation(true)}
               >
-                Unblock
-              </button>
+                <Shield className="w-5 h-5 text-red-500 dark:text-red-400" />
+                <span className="text-sm font-medium text-red-700 dark:text-red-300">Block All Now</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center">
+                <div className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                  Block active for: {formatBlockDuration(blockDuration)}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-300">
+                  Total blocks: {totalBlocks}
+                </div>
+                {activeBlock?.is_unlockable && (
+                  <button
+                    onClick={handleUnblock}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200 mt-2"
+                  >
+                    Unblock
+                  </button>
+                )}
+              </div>
             )}
           </div>
-        )}
-      </div>
 
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold text-gray-800">Connected Brokerages & Triggers</h1>
-          <div className="flex items-center space-x-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+          <div className="p-6 dark:text-white">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">Brokerages & Triggers</h1>
+              {/* Remove the search bar and filter icon */}
             </div>
-            <button className="p-2 rounded-lg hover:bg-gray-100 border border-gray-300">
-              <SlidersHorizontal className="text-gray-600 w-5 h-5" />
-            </button>
-          </div>
-        </div>
 
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex space-x-2">
-            <button
-              className={`px-4 py-2 rounded-full text-sm font-medium ${filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
-              onClick={() => setFilter('all')}
-            >
-              View all
-            </button>
-            <button
-              className={`px-4 py-2 rounded-full text-sm font-medium ${filter === 'active' ? 'bg-gray-100 text-gray-600' : 'bg-transparent text-gray-600'}`}
-              onClick={() => setFilter('active')}
-            >
-              Actived
-            </button>
-            <button
-              className={`px-4 py-2 rounded-full text-sm font-medium ${filter === 'inactive' ? 'bg-gray-100 text-gray-600' : 'bg-transparent text-gray-600'}`}
-              onClick={() => setFilter('inactive')}
-            >
-              Inactive
-            </button>
-          </div>
-          <button 
-            className={`p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-all duration-300 flex items-center ${isAddHovered ? 'px-4' : ''}`}
-            onMouseEnter={() => setIsAddHovered(true)}
-            onMouseLeave={() => setIsAddHovered(false)}
-            onClick={() => setShowComingSoonIntegration(true)}
-          >
-            <Plus className="w-5 h-5" />
-            {isAddHovered && (
-              <span className="ml-2 whitespace-nowrap overflow-hidden transition-all duration-300" style={{ maxWidth: isAddHovered ? '100px' : '0' }}>
-                Integration
-              </span>
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex space-x-2">
+                <button
+                  className={`px-4 py-2 rounded-full text-sm font-medium ${filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
+                  onClick={() => setFilter('all')}
+                >
+                  View all
+                </button>
+                <button
+                  className={`px-4 py-2 rounded-full text-sm font-medium ${filter === 'connected' ? 'bg-gray-100 text-gray-600' : 'bg-transparent text-gray-600'}`}
+                  onClick={() => setFilter('connected')}
+                >
+                  Connected
+                </button>
+              </div>
+              <button 
+                className={`p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-all duration-300 flex items-center ${isAddHovered ? 'px-4' : ''}`}
+                onMouseEnter={() => setIsAddHovered(true)}
+                onMouseLeave={() => setIsAddHovered(false)}
+                onClick={handleAddIntegration}
+              >
+                <Plus className="w-5 h-5" />
+                {isAddHovered && (
+                  <span className="ml-2 whitespace-nowrap overflow-hidden transition-all duration-300" style={{ maxWidth: isAddHovered ? '100px' : '0' }}>
+                    Integration
+                  </span>
+                )}
+              </button>
+            </div>
+            <div className="space-y-4">
+              {currentIntegrations
+                .filter(app => filter === 'all' || (filter === 'connected' && app.connected))
+                .map((app, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center space-x-4">
+                      <Image src={app.logo} alt={`${app.name} logo`} className="w-12 h-12 rounded-xl" width={48} height={48} />
+                      <div>
+                        <h2 className="font-semibold text-gray-800 dark:text-gray-200">{app.name}</h2>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button 
+                        className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600"
+                        onClick={() => setShowSettingsPopup(true)}
+                      >
+                        <MoreVertical className="text-gray-400 w-5 h-5" />
+                      </button>
+                      {app.name !== "TradingView" && (
+                        <button 
+                          className="px-2 py-1 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                          onClick={() => handleRemovePlatform(app.name)}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
+
+            {/* Pagination */}
+            {integrations.length > integrationsPerPage && (
+              <div className="flex justify-center mt-4">
+                {Array.from({ length: Math.ceil(integrations.length / integrationsPerPage) }, (_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => paginate(i + 1)}
+                    className={`mx-1 px-3 py-1 rounded ${
+                      currentPage === i + 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
             )}
-          </button>
-        </div>
-        <div className="space-y-4">
-          {apps
-            .filter(app => filter === 'all' || (filter === 'active' && app.active) || (filter === 'inactive' && !app.active))
-            .map((app, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200">
-                <div className="flex items-center space-x-4">
-                  <img src={app.logo} alt={`${app.name} logo`} className="w-12 h-12 rounded-xl" />
-                  <div>
-                    <h2 className="font-semibold text-gray-800">{app.name}</h2>
-                    <p className="text-sm text-gray-500">{app.domain}</p>
-                    {app.accountSize && (
-                      <p className="text-sm text-gray-500">Account size: ${app.accountSize.toLocaleString()}</p>
-                    )}
+
+            {/* Settings Popup */}
+            {showSettingsPopup && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-96">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">TradingView Settings</h2>
+                    <button 
+                      onClick={() => setShowSettingsPopup(false)}
+                      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Limit Type
+                      </label>
+                      <select
+                        value={limitType}
+                        onChange={(e) => setLimitType(e.target.value as 'percentage' | 'value')}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      >
+                        <option value="percentage">Percentage (%)</option>
+                        <option value="value">Value ($)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="lossLimit" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Loss Limit
+                      </label>
+                      <input
+                        type="number"
+                        id="lossLimit"
+                        value={lossLimit}
+                        onChange={(e) => setLossLimit(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder={`Enter loss limit ${limitType === 'percentage' ? '%' : '$'}`}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="profitLimit" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Profit Limit
+                      </label>
+                      <input
+                        type="number"
+                        id="profitLimit"
+                        value={profitLimit}
+                        onChange={(e) => setProfitLimit(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder={`Enter profit limit ${limitType === 'percentage' ? '%' : '$'}`}
+                      />
+                    </div>
+                    <button
+                      className="w-full px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200 cursor-not-allowed"
+                      disabled
+                    >
+                      Coming Soon
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <button 
-                    className="p-1 rounded-full hover:bg-gray-100"
-                    onClick={() => setShowSettingsPopup(true)}
-                  >
-                    <MoreVertical className="text-gray-400 w-5 h-5" />
-                  </button>
-                </div>
               </div>
-            ))}
-        </div>
+            )}
 
-        {/* Settings Popup */}
-        {showSettingsPopup && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-96">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">TradingView Settings</h2>
-                <button 
-                  onClick={() => setShowSettingsPopup(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Limit Type
-                  </label>
-                  <select
-                    value={limitType}
-                    onChange={(e) => setLimitType(e.target.value as 'percentage' | 'value')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="percentage">Percentage (%)</option>
-                    <option value="value">Value ($)</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="lossLimit" className="block text-sm font-medium text-gray-700 mb-1">
-                    Loss Limit
-                  </label>
-                  <input
-                    type="number"
-                    id="lossLimit"
-                    value={lossLimit}
-                    onChange={(e) => setLossLimit(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder={`Enter loss limit ${limitType === 'percentage' ? '%' : '$'}`}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="profitLimit" className="block text-sm font-medium text-gray-700 mb-1">
-                    Profit Limit
-                  </label>
-                  <input
-                    type="number"
-                    id="profitLimit"
-                    value={profitLimit}
-                    onChange={(e) => setProfitLimit(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder={`Enter profit limit ${limitType === 'percentage' ? '%' : '$'}`}
-                  />
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={handleSave}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={handleDisconnect}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors duration-200"
-                  >
-                    Disconnect
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Block Popup */}
-        {showBlockPopup && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl">
-              <h2 className="text-xl font-semibold mb-4">Confirm Block</h2>
-              <p className="mb-4">Are you sure you want to activate the block?</p>
-              <div className="flex justify-end space-x-2">
-                <button 
-                  onClick={() => setShowBlockPopup(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors duration-200"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={() => {
-                    // Add your block activation logic here
-                    setShowBlockPopup(false)
-                  }}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors duration-200"
-                >
-                  Yes, Activate
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Coming Soon Popup */}
-        {showComingSoon && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-80">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Coming Soon</h2>
-                <button 
-                  onClick={() => setShowComingSoon(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <p className="text-gray-600 mb-4">The "Block All Now" feature is not yet available. Stay tuned for updates!</p>
-              <button
-                onClick={() => setShowComingSoon(false)}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
-              >
-                Got it
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Coming Soon Integration Popup */}
-        {showComingSoonIntegration && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-80">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Coming Soon</h2>
-                <button 
-                  onClick={() => setShowComingSoonIntegration(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <p className="text-gray-600 mb-4">The ability to add new integrations is not yet available. Stay tuned for updates!</p>
-              <button
-                onClick={() => setShowComingSoonIntegration(false)}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
-              >
-                Got it
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Block Configuration Popup */}
-        {showBlockConfirmation && blockState === 'inactive' && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-96">
-              <h2 className="text-xl font-semibold mb-4">Configure Block</h2>
-              <p className="text-sm text-gray-600 mb-4">You can only have one active block at a time.</p>
-              <div className="space-y-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Block Duration
-                  </label>
-                  <div className="flex space-x-2">
-                    <input
-                      type="number"
-                      value={blockDuration.days}
-                      onChange={(e) => setBlockDuration({...blockDuration, days: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Days"
-                    />
-                    <input
-                      type="number"
-                      value={blockDuration.hours}
-                      onChange={(e) => setBlockDuration({...blockDuration, hours: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Hours"
-                    />
-                    <input
-                      type="number"
-                      value={blockDuration.minutes}
-                      onChange={(e) => setBlockDuration({...blockDuration, minutes: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Minutes"
-                    />
+            {/* Block Popup */}
+            {showBlockPopup && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-lg shadow-xl">
+                  <h2 className="text-xl font-semibold mb-4">Confirm Block</h2>
+                  <p className="mb-4">Are you sure you want to activate the block?</p>
+                  <div className="flex justify-end space-x-2">
+                    <button 
+                      onClick={() => setShowBlockPopup(false)}
+                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors duration-200"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={() => {
+                        // Add your block activation logic here
+                        setShowBlockPopup(false)
+                      }}
+                      className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors duration-200"
+                    >
+                      Yes, Activate
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={isUnlockable}
-                    onCheckedChange={setIsUnlockable}
-                    className={`${
-                      isUnlockable ? 'bg-blue-600' : 'bg-gray-200'
-                    } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+              </div>
+            )}
+
+            {/* Coming Soon Popup */}
+            {showComingSoon && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-lg shadow-xl w-80">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">Coming Soon</h2>
+                    <button 
+                      onClick={() => setShowComingSoon(false)}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <p className="text-gray-600 mb-4">The "Block All Now" feature is not yet available. Stay tuned for updates!</p>
+                  <button
+                    onClick={() => setShowComingSoon(false)}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
                   >
-                    <span
-                      className={`${
-                        isUnlockable ? 'translate-x-6' : 'translate-x-1'
-                      } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
-                    />
-                  </Switch>
-                  <label className="text-sm font-medium text-gray-700">
-                    Unlockable Block
-                  </label>
+                    Got it
+                  </button>
                 </div>
               </div>
-              <div className="flex justify-end space-x-2">
-                <button 
-                  onClick={() => setShowBlockConfirmation(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors duration-200"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleBlockActivation}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors duration-200"
-                >
-                  Activate Block
-                </button>
+            )}
+
+            {/* Coming Soon Integration Popup */}
+            {showComingSoonIntegration && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Coming Soon</h2>
+                    <button 
+                      onClick={() => setShowComingSoonIntegration(false)}
+                      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-300 mb-4">The ability to add new integrations is not yet available. Stay tuned for updates!</p>
+                  <button
+                    onClick={() => setShowComingSoonIntegration(false)}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
+                  >
+                    Got it
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Block Configuration Popup */}
+            {showBlockConfirmation && blockState === 'inactive' && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-96">
+                  <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Configure Block</h2>
+                  <div className="space-y-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Block Duration
+                      </label>
+                      <div className="flex space-x-2">
+                        <input
+                          type="number"
+                          value={blockDuration.days}
+                          onChange={(e) => setBlockDuration({...blockDuration, days: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                          placeholder="Days"
+                          min="0"
+                        />
+                        <input
+                          type="number"
+                          value={blockDuration.hours}
+                          onChange={(e) => setBlockDuration({...blockDuration, hours: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                          placeholder="Hours"
+                          min="0"
+                          max="23"
+                        />
+                        <input
+                          type="number"
+                          value={blockDuration.minutes}
+                          onChange={(e) => setBlockDuration({...blockDuration, minutes: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                          placeholder="Minutes"
+                          min="0"
+                          max="59"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={isUnlockable}
+                          onCheckedChange={setIsUnlockable}
+                          className={`${
+                            isUnlockable ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                          } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
+                        >
+                          <span
+                            className={`${
+                              isUnlockable ? 'translate-x-6' : 'translate-x-1'
+                            } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                          />
+                        </Switch>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Unlockable Block
+                        </label>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {isUnlockable 
+                          ? "Unlockable: You can remove the block before the set duration ends."
+                          : "Lockable: Once set, the block cannot be removed until the duration ends."}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Platforms to be blocked:
+                      </label>
+                      <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400">
+                        {connectedPlatforms.map((platform) => (
+                          <li key={platform}>{platform}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <button 
+                      onClick={() => setShowBlockConfirmation(false)}
+                      className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors duration-200"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={handleBlockActivation}
+                      className={`px-4 py-2 text-white rounded transition-colors duration-200 ${
+                        isDurationSet()
+                          ? 'bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600'
+                          : 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
+                      }`}
+                      disabled={!isDurationSet()}
+                    >
+                      Activate Block
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Add Integration Modal */}
+            {showAddIntegrationModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-96 max-h-[80vh] overflow-y-auto">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add Integrations</h2>
+                    <button 
+                      onClick={handleCloseAddIntegrationModal}
+                      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="space-y-4 mb-4">
+                    {availablePlatforms.map(platform => (
+                      <div 
+                        key={platform.name}
+                        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <Checkbox
+                          id={`checkbox-${platform.name}`}
+                          checked={selectedPlatforms.includes(platform.name) || connectedPlatforms.includes(platform.name)}
+                          onCheckedChange={() => handleSelectPlatform(platform.name)}
+                          disabled={connectedPlatforms.includes(platform.name)}
+                        />
+                        <Image src={platform.logo} alt={`${platform.name} logo`} className="w-8 h-8" width={32} height={32} />
+                        <label
+                          htmlFor={`checkbox-${platform.name}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {platform.name}
+                        </label>
+                        {connectedPlatforms.includes(platform.name) && (
+                          <span className="text-green-500 text-sm">Connected</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={handleConfirmAddIntegrations}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
+                    disabled={selectedPlatforms.length === 0}
+                  >
+                    Add Selected Integrations
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   )
 }
