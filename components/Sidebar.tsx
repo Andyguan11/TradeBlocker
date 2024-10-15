@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Sidebarbutton"
 import { Card } from "@/components/ui/SidebarCard"
 import { Avatar, AvatarFallback } from "@/components/ui/Intergrationsvatar"
 import { PlusIcon, ChevronRightIcon, PencilIcon, ChevronLeftIcon, Settings, X } from "lucide-react"
-import { supabase } from "@/utils/supabaseClient"
+import { supabase } from "../utils/supabaseClient"
 import { useRouter } from 'next/router'
 
 export function GlassySidebar() {

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X, CheckCircle, XCircle } from 'lucide-react'
 import { Poppins } from 'next/font/google'
 import { User, createClient } from '@supabase/supabase-js'
@@ -115,7 +115,7 @@ const IntergrationsContainer: React.FC = () => {
     fetchUserAndSettings();
   }, []);
 
-  const fetchUserSettings = async (userId: string) => {
+  const fetchUserSettings = useCallback(async (userId: string) => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('user_settings')
@@ -173,7 +173,7 @@ const IntergrationsContainer: React.FC = () => {
       }
     }
     setIsLoading(false);
-  };
+  }, []);
 
   const createUserSettings = async (userId: string) => {
     setIsLoading(true);
@@ -539,6 +539,10 @@ const IntergrationsContainer: React.FC = () => {
   const currentIntegrations = integrations.slice(indexOfFirstIntegration, indexOfLastIntegration);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  useEffect(() => {
+    fetchUserSettings();
+  }, [fetchUserSettings]); // Add fetchUserSettings to the dependency array
 
   return (
     <div className={`w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${poppins.className}`}>
