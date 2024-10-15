@@ -320,7 +320,7 @@ const IntergrationsContainer: React.FC = () => {
           setBlockDuration({ days: '', hours: '', minutes: '' });
           console.log('Block expired, new state:', 'inactive');
           // Update the database
-          const { data, error } = await supabase
+          const { error } = await supabase
             .from('user_settings')
             .update({ 
               block_state: 'inactive',
