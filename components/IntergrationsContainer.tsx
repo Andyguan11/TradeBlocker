@@ -1,9 +1,12 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react/no-unescaped-entities */
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X, CheckCircle, XCircle } from 'lucide-react'
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { MoreVertical, Plus, Shield, X } from 'lucide-react'
 import { Poppins } from 'next/font/google'
-import { User, createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
 import { Switch } from '@radix-ui/react-switch';
 import { Checkbox } from "@/components/ui/checkbox"
 import Image from 'next/image';
@@ -23,15 +26,6 @@ interface App {
   connected: boolean;
 }
 
-const apps: App[] = [
-  {
-    name: "TradingView",
-    description: "Real-time market data and analysis",
-    logo: "/tradingview.png",
-    connected: true
-  }
-]
-
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
@@ -39,7 +33,7 @@ const supabase = createClient(
 
 // Add this new interface
 interface AvailablePlatform {
-  description: any;
+  description: string;
   name: string;
   logo: string;
   connected: boolean;
@@ -65,30 +59,29 @@ const IntergrationsContainer: React.FC = () => {
   }>(null);
   const [totalBlocks, setTotalBlocks] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
-  const [userIdDisplay, setUserIdDisplay] = useState<string | null>(null);
 
-  // Add these new state variables
+  // Remove unused state variables
   const [showAddIntegrationModal, setShowAddIntegrationModal] = useState(false);
-  const [availablePlatforms, setAvailablePlatforms] = useState<AvailablePlatform[]>([
+  const [availablePlatforms] = useState<AvailablePlatform[]>([
     {
       name: "TradingView", logo: "/tradingview.png", connected: true,
-      description: undefined
+      description: "Connected platform"
     },
     {
       name: "Tradovate", logo: "/tradovate.png", connected: false,
-      description: undefined
+      description: "Connected platform"
     },
     {
       name: "NinjaTrader", logo: "/Ninjatrader.png", connected: false,
-      description: undefined
+      description: "Connected platform"
     },
     {
       name: "Metatrader5", logo: "/mt5.png", connected: false,
-      description: undefined
+      description: "Connected platform"
     },
     {
       name: "Metatrader4", logo: "/mt4.png", connected: false,
-      description: undefined
+      description: "Connected platform"
     },
   ]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
@@ -97,6 +90,50 @@ const IntergrationsContainer: React.FC = () => {
   const integrationsPerPage = 5;
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(["TradingView"]);
   const [isLoading, setIsLoading] = useState(true);
+  const fetchUserSettingsRef = useRef<(userId: string) => Promise<void>>();
+
+  fetchUserSettingsRef.current = useCallback(async (userId: string) => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('block_state, block_end_time, is_unlockable, total_blocks, connected_platforms')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        console.log('No user settings found, creating new settings');
+        await createUserSettings(userId);
+      } else {
+        console.error('Error fetching user settings:', error);
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    if (data) {
+      console.log('Fetched user settings:', data);
+      setTotalBlocks(data.total_blocks || 0);
+      setBlockState(data.block_state || 'inactive');
+      const platforms = data.connected_platforms || [];
+      if (!platforms.includes("TradingView")) {
+        platforms.push("TradingView");
+      }
+      setConnectedPlatforms(platforms);
+      
+      // Update integrations based on connected platforms
+      const updatedIntegrations = platforms.map((platformName: string) => {
+        const platform = availablePlatforms.find(p => p.name === platformName);
+        return {
+          name: platformName,
+          description: platform ? platform.description : "Connected platform",
+          logo: platform ? platform.logo : "/default-logo.png",
+        };
+      });
+      setIntegrations(updatedIntegrations);
+    }
+    setIsLoading(false);
+  }, [availablePlatforms]);
 
   useEffect(() => {
     const fetchUserAndSettings = async () => {
@@ -104,14 +141,16 @@ const IntergrationsContainer: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        setUserIdDisplay(user.id);
-        await fetchUserSettings(user.id);
+        if (fetchUserSettingsRef.current) {
+          await fetchUserSettingsRef.current(user.id);
+        } else {
+          console.error('fetchUserSettingsRef.current is undefined');
+        }
       } else {
         console.error('No user found');
       }
       setIsLoading(false);
     };
-
     fetchUserAndSettings();
   }, []);
 
@@ -136,6 +175,7 @@ const IntergrationsContainer: React.FC = () => {
 
     if (data) {
       console.log('Fetched user settings:', data);
+      // Use the data
       setTotalBlocks(data.total_blocks || 0);
       setBlockState(data.block_state || 'inactive');
       // Ensure TradingView is always included in connected platforms
@@ -173,7 +213,7 @@ const IntergrationsContainer: React.FC = () => {
       }
     }
     setIsLoading(false);
-  }, []);
+  }, [availablePlatforms]);
 
   const createUserSettings = async (userId: string) => {
     setIsLoading(true);
@@ -204,18 +244,6 @@ const IntergrationsContainer: React.FC = () => {
       minutes: Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60)).toString(),
     });
   };
-
-  const handleSave = () => {
-    // Add save logic here
-    console.log('Saving:', { lossLimit, profitLimit })
-    setShowSettingsPopup(false)
-  }
-
-  const handleDisconnect = () => {
-    // Add disconnect logic here
-    console.log('Disconnecting')
-    setShowSettingsPopup(false)
-  }
 
   const isDurationSet = () => {
     return (
@@ -332,8 +360,7 @@ const IntergrationsContainer: React.FC = () => {
   };
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-    const checkBlockStatus = async () => {
+    const timer = setInterval(async () => {
       if (userId && activeBlock) {
         const now = new Date();
         const endTime = new Date(activeBlock.end_time);
@@ -343,7 +370,6 @@ const IntergrationsContainer: React.FC = () => {
           setBlockState('inactive');
           setBlockDuration({ days: '', hours: '', minutes: '' });
           console.log('Block expired, new state:', 'inactive');
-
           // Update the database
           const { error } = await supabase
             .from('user_settings')
@@ -362,80 +388,17 @@ const IntergrationsContainer: React.FC = () => {
           updateBlockDuration(endTime);
         }
       }
+    }, 60000);
+
+    return () => {
+      clearInterval(timer);
     };
-
-    checkBlockStatus(); // Run immediately
-    timer = setInterval(checkBlockStatus, 60000); // Check every minute
-
-    return () => clearInterval(timer);
   }, [userId, activeBlock]);
 
   // Add this useEffect to log state changes
   useEffect(() => {
     console.log('Block state changed:', blockState);
   }, [blockState]);
-
-  const handleBlockAllNow = async () => {
-    console.log('Activating block...');
-    const { data, error: userError } = await supabase.auth.getUser();
-    const user = data?.user;
-    
-    if (userError || !user) {
-      console.error('Error getting user:', userError);
-      return;
-    }
-  
-    console.log('User ID:', user.id);
-  
-    try {
-      // Update Supabase
-      const { error } = await supabase
-        .from('user_settings')
-        .update({ 
-          block_state: 'active',
-          block_end_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Set block for 24 hours
-        })
-        .eq('user_id', user.id);
-  
-      if (error) {
-        throw error;
-      }
-
-      console.log('Block state updated to active');
-    } catch (error) {
-      console.error('Error updating block state:', error);
-    }
-  };
-
-  const updateBlockState = (newState: 'active' | 'inactive') => {
-    setBlockState(newState);
-    console.log('Block state updated to:', newState);
-  };
-
-  const handleBlockNow = async () => {
-    try {
-      const response = await fetch('/api/block-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: userId,
-          blockState: true,
-          duration: blockDuration, // Assume you have a state variable for this
-        }),
-      });
-
-      if (response.ok) {
-        // Update local state or show a success message
-        console.log('Block status updated successfully');
-      } else {
-        console.error('Failed to update block status');
-      }
-    } catch (error) {
-      console.error('Error updating block status:', error);
-    }
-  };
 
   useEffect(() => {
     const channel = supabase
@@ -448,8 +411,8 @@ const IntergrationsContainer: React.FC = () => {
     }
   }, [])
 
-  const handleBlockStateChange = (payload: any) => {
-    const newBlockState = payload.new.block_state
+  const handleBlockStateChange = (payload: { new: { block_state: string; block_end_time: string; is_unlockable: boolean } }) => {
+    const newBlockState = payload.new.block_state as 'active' | 'inactive'
     setBlockState(newBlockState)
     if (newBlockState === 'active') {
       setActiveBlock({
@@ -487,13 +450,16 @@ const IntergrationsContainer: React.FC = () => {
   const handleConfirmAddIntegrations = async () => {
     const newIntegrations = selectedPlatforms.map(platformName => {
       const platform = availablePlatforms.find(p => p.name === platformName);
-      return {
-        name: platform!.name,
-        description: "New integration",
-        logo: platform!.logo,
-        connected: true
-      };
-    });
+      if (platform) {
+        return {
+          name: platform.name,
+          description: "New integration",
+          logo: platform.logo,
+          connected: true
+        };
+      }
+      return null;
+    }).filter((integration): integration is App => integration !== null);
 
     const updatedConnectedPlatforms = [...connectedPlatforms, ...selectedPlatforms];
 
@@ -625,7 +591,13 @@ const IntergrationsContainer: React.FC = () => {
                 .map((app, index) => (
                   <div key={index} className="flex items-center justify-between p-4 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
                     <div className="flex items-center space-x-4">
-                      <Image src={app.logo} alt={`${app.name} logo`} className="w-12 h-12 rounded-xl" width={48} height={48} />
+                      <Image
+                        src={app.logo}
+                        alt={`${app.name} logo`}
+                        className="h-6 w-6 rounded-full"
+                        width={24}
+                        height={24}
+                      />
                       <div>
                         <h2 className="font-semibold text-gray-800 dark:text-gray-200">{app.name}</h2>
                       </div>
@@ -953,6 +925,9 @@ const IntergrationsContainer: React.FC = () => {
               </div>
             )}
           </div>
+          <p className="text-sm text-gray-500 mt-2">
+            {`Don't see the app you're looking for? Let us know and we'll add it!`}
+          </p>
         </>
       )}
     </div>
