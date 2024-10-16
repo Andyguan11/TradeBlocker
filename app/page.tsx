@@ -22,7 +22,7 @@ export default function AuthPage() {
   useEffect(() => {
     const testSupabaseConnection = async () => {
       try {
-        const { data, error } = await supabase.from('profiles').select('id').limit(1)
+        const { error } = await supabase.from('profiles').select('id').limit(1)
         if (error) throw error
         console.log('Supabase connection test successful')
       } catch (error) {
@@ -100,9 +100,9 @@ export default function AuthPage() {
           setError('Signup successful, but no user returned. This is unexpected. Please contact support.')
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Auth error:', error)
-      setError(error.message || 'An unexpected error occurred. Please try again.')
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -111,7 +111,7 @@ export default function AuthPage() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/dashboard`
