@@ -88,69 +88,68 @@ const IntergrationsContainer: React.FC = () => {
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(["TradingView"]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchUserSettings = useCallback(async (userId: string) => {
-    setIsLoading(true);
-    const { data, error } = await supabase
-      .from('user_settings')
-      .select('block_state, block_end_time, is_unlockable, total_blocks, connected_platforms')
-      .eq('user_id', userId)
-      .single();
+  useEffect(() => {
+    const fetchUserSettings = async (userId: string) => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('block_state, block_end_time, is_unlockable, total_blocks, connected_platforms')
+        .eq('user_id', userId)
+        .single();
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        console.log('No user settings found, creating new settings');
-        await createUserSettings(userId);
-      } else {
-        console.error('Error fetching user settings:', error);
+      if (error) {
+        if (error.code === 'PGRST116') {
+          console.log('No user settings found, creating new settings');
+          await createUserSettings(userId);
+        } else {
+          console.error('Error fetching user settings:', error);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      if (data) {
+        console.log('Fetched user settings:', data);
+        setTotalBlocks(data.total_blocks || 0);
+        setBlockState(data.block_state || 'inactive');
+        // Ensure TradingView is always included in connected platforms
+        const platforms = data.connected_platforms || [];
+        if (!platforms.includes("TradingView")) {
+          platforms.push("TradingView");
+        }
+        setConnectedPlatforms(platforms);
+        
+        // Update integrations based on connected platforms
+        const updatedIntegrations = platforms.map((platformName: string) => {
+          const platform = availablePlatforms.find(p => p.name === platformName);
+          return {
+            name: platformName,
+            description: platform ? platform.description : "Connected platform",
+            logo: platform ? platform.logo : "/default-logo.png",
+            connected: true
+          };
+        });
+        setIntegrations(updatedIntegrations);
+
+        const now = new Date();
+        const endTime = new Date(data.block_end_time);
+        if (endTime > now && data.block_state === 'active') {
+          setActiveBlock({
+            end_time: data.block_end_time,
+            is_unlockable: data.is_unlockable
+          });
+          updateBlockDuration(endTime);
+          console.log('Block is active, end time:', endTime);
+        } else {
+          setActiveBlock(null);
+          setBlockDuration({ days: '', hours: '', minutes: '' });
+          console.log('Block is inactive');
+        }
       }
       setIsLoading(false);
-      return;
-    }
+    };
 
-    if (data) {
-      console.log('Fetched user settings:', data);
-      setTotalBlocks(data.total_blocks || 0);
-      setBlockState(data.block_state || 'inactive');
-      // Ensure TradingView is always included in connected platforms
-      const platforms = data.connected_platforms || [];
-      if (!platforms.includes("TradingView")) {
-        platforms.push("TradingView");
-      }
-      setConnectedPlatforms(platforms);
-      
-      // Update integrations based on connected platforms
-      const updatedIntegrations = platforms.map((platformName: string) => {
-        const platform = availablePlatforms.find(p => p.name === platformName);
-        return {
-          name: platformName,
-          description: platform ? platform.description : "Connected platform",
-          logo: platform ? platform.logo : "/default-logo.png",
-          connected: true
-        };
-      });
-      setIntegrations(updatedIntegrations);
-
-      const now = new Date();
-      const endTime = new Date(data.block_end_time);
-      if (endTime > now && data.block_state === 'active') {
-        setActiveBlock({
-          end_time: data.block_end_time,
-          is_unlockable: data.is_unlockable
-        });
-        updateBlockDuration(endTime);
-        console.log('Block is active, end time:', endTime);
-      } else {
-        setActiveBlock(null);
-        setBlockDuration({ days: '', hours: '', minutes: '' });
-        console.log('Block is inactive');
-      }
-    }
-    setIsLoading(false);
-  }, []);  // Empty dependency array, as this function doesn't depend on any props or state
-
-  useEffect(() => {
     const fetchUserAndSettings = async () => {
-      setIsLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
@@ -162,7 +161,7 @@ const IntergrationsContainer: React.FC = () => {
     };
 
     fetchUserAndSettings();
-  }, [fetchUserSettings]);
+  }, []);  // Empty dependency array
 
   const createUserSettings = async (userId: string) => {
     setIsLoading(true);
