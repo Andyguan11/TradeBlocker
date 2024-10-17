@@ -75,17 +75,6 @@ export default function AuthPage({ mode }: AuthPageProps) {
     setError('')
     try {
       if (mode === 'signup') {
-        const { data: existingUser } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', formData.get('email'))
-          .single()
-
-        if (existingUser) {
-          setError('An account with this email already exists. Please try logging in instead.')
-          return
-        }
-
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.get('email') as string,
           password: formData.get('password') as string,
@@ -103,12 +92,21 @@ export default function AuthPage({ mode }: AuthPageProps) {
             { 
               id: authData.user.id, 
               email: authData.user.email,
+              full_name: formData.get('full_name') as string,
             }
           ])
 
+          // Immediately sign in the user after signup
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: formData.get('email') as string,
+            password: formData.get('password') as string,
+          });
+
+          if (signInError) throw signInError;
+
           router.push('/dashboard')
         } else {
-          throw new Error('Signup successful, but no user returned. This is unexpected.')
+          throw new Error('Signup failed. Please try again.')
         }
       } else {
         // Login logic remains unchanged
