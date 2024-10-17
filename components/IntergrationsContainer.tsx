@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X, CheckCircle, XCircle } from 'lucide-react'
+import { MoreVertical, Plus, Shield, X } from 'lucide-react'
 import { Poppins } from 'next/font/google'
-import { User, createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
 import { Switch } from '@radix-ui/react-switch';
 import { Checkbox } from "@/components/ui/checkbox"
 import Image from 'next/image'
@@ -22,15 +22,6 @@ interface App {
   accountSize?: number;
   connected: boolean;
 }
-
-const apps: App[] = [
-  {
-    name: "TradingView",
-    description: "Real-time market data and analysis",
-    logo: "/tradingview.png",
-    connected: true
-  }
-]
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
@@ -65,7 +56,6 @@ const IntergrationsContainer: React.FC = () => {
   }>(null);
   const [totalBlocks, setTotalBlocks] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
-  const [userIdDisplay, setUserIdDisplay] = useState<string | null>(null);
 
   // Add these new state variables
   const [showAddIntegrationModal, setShowAddIntegrationModal] = useState(false);
@@ -104,7 +94,6 @@ const IntergrationsContainer: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        setUserIdDisplay(user.id);
         await fetchUserSettings(user.id);
       } else {
         console.error('No user found');
@@ -332,7 +321,6 @@ const IntergrationsContainer: React.FC = () => {
   };
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
     const checkBlockStatus = async () => {
       if (userId && activeBlock) {
         const now = new Date();
@@ -364,89 +352,10 @@ const IntergrationsContainer: React.FC = () => {
       }
     };
 
-    checkBlockStatus(); // Run immediately
-    timer = setInterval(checkBlockStatus, 60000); // Check every minute
+    const timer = setInterval(checkBlockStatus, 60000); // Check every minute
 
     return () => clearInterval(timer);
   }, [userId, activeBlock]);
-
-  // Add this useEffect to log state changes
-  useEffect(() => {
-    console.log('Block state changed:', blockState);
-  }, [blockState]);
-
-  const handleBlockAllNow = async () => {
-    console.log('Activating block...');
-    const { data, error: userError } = await supabase.auth.getUser();
-    const user = data?.user;
-    
-    if (userError || !user) {
-      console.error('Error getting user:', userError);
-      return;
-    }
-  
-    console.log('User ID:', user.id);
-  
-    try {
-      // Update Supabase
-      const { error } = await supabase
-        .from('user_settings')
-        .update({ 
-          block_state: 'active',
-          block_end_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Set block for 24 hours
-        })
-        .eq('user_id', user.id);
-  
-      if (error) {
-        throw error;
-      }
-
-      console.log('Block state updated to active');
-    } catch (error) {
-      console.error('Error updating block state:', error);
-    }
-  };
-
-  const updateBlockState = (newState: 'active' | 'inactive') => {
-    setBlockState(newState);
-    console.log('Block state updated to:', newState);
-  };
-
-  const handleBlockNow = async () => {
-    try {
-      const response = await fetch('/api/block-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: userId,
-          blockState: true,
-          duration: blockDuration, // Assume you have a state variable for this
-        }),
-      });
-
-      if (response.ok) {
-        // Update local state or show a success message
-        console.log('Block status updated successfully');
-      } else {
-        console.error('Failed to update block status');
-      }
-    } catch (error) {
-      console.error('Error updating block status:', error);
-    }
-  };
-
-  useEffect(() => {
-    const channel = supabase
-      .channel('block-state-changes')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user_settings' }, handleBlockStateChange)
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [])
 
   const handleBlockStateChange = (payload: { new: { block_state: string; block_end_time: string; is_unlockable: boolean } }) => {
     const newBlockState = payload.new.block_state
