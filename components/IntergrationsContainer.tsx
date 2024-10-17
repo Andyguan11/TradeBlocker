@@ -6,6 +6,7 @@ import { Poppins } from 'next/font/google'
 import { User, createClient } from '@supabase/supabase-js'
 import { Switch } from '@radix-ui/react-switch';
 import { Checkbox } from "@/components/ui/checkbox"
+import Image from 'next/image'
 
 const poppins = Poppins({ 
   weight: ['400', '500', '600'],
@@ -447,9 +448,9 @@ const IntergrationsContainer: React.FC = () => {
     }
   }, [])
 
-  const handleBlockStateChange = (payload: any) => {
+  const handleBlockStateChange = (payload: { new: { block_state: string; block_end_time: string; is_unlockable: boolean } }) => {
     const newBlockState = payload.new.block_state
-    setBlockState(newBlockState)
+    setBlockState(newBlockState as 'active' | 'inactive')
     if (newBlockState === 'active') {
       setActiveBlock({
         end_time: payload.new.block_end_time,
@@ -618,7 +619,7 @@ const IntergrationsContainer: React.FC = () => {
                 .map((app, index) => (
                   <div key={index} className="flex items-center justify-between p-4 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
                     <div className="flex items-center space-x-4">
-                      <img src={app.logo} alt={`${app.name} logo`} className="w-12 h-12 rounded-xl" />
+                      <Image src={app.logo} alt={`${app.name} logo`} width={48} height={48} className="rounded-xl" />
                       <div>
                         <h2 className="font-semibold text-gray-800 dark:text-gray-200">{app.name}</h2>
                       </div>
@@ -922,7 +923,7 @@ const IntergrationsContainer: React.FC = () => {
                           onCheckedChange={() => handleSelectPlatform(platform.name)}
                           disabled={connectedPlatforms.includes(platform.name)}
                         />
-                        <img src={platform.logo} alt={`${platform.name} logo`} className="w-8 h-8" />
+                        <Image src={platform.logo} alt={`${platform.name} logo`} width={32} height={32} />
                         <label
                           htmlFor={`checkbox-${platform.name}`}
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
