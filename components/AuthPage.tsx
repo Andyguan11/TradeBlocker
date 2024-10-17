@@ -140,12 +140,11 @@ export default function AuthPage({ mode }: AuthPageProps) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: process.env.NEXT_PUBLIC_SITE_URL
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
         }
       });
       
       if (error) throw error;
-      // Successful sign-in is handled by the auth state change listener
     } catch (error) {
       console.error('Error signing in with Google:', error);
       setError('Failed to sign in with Google. Please try again.');
