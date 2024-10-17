@@ -102,7 +102,7 @@ const IntergrationsContainer: React.FC = () => {
     };
 
     fetchUserAndSettings();
-  }, []); // Remove fetchUserSettings from the dependency array
+  }, []);
 
   const fetchUserSettings = async (userId: string) => {
     setIsLoading(true);
