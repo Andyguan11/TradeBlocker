@@ -1,6 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable react/no-unescaped-entities */
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -10,12 +7,16 @@ import { createClient } from '@supabase/supabase-js'
 import { Switch } from '@radix-ui/react-switch';
 import { Checkbox } from "@/components/ui/checkbox"
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 
 const poppins = Poppins({ 
   weight: ['400', '500', '600'],
   subsets: ['latin'],
   display: 'swap',
 })
+
+// Dynamically import components that use browser APIs
+const DynamicSwitch = dynamic(() => import('@radix-ui/react-switch').then(mod => mod.Switch), { ssr: false });
 
 // Update the App interface
 interface App {
@@ -26,11 +27,6 @@ interface App {
   connected: boolean;
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-);
-
 // Add this new interface
 interface AvailablePlatform {
   description: string;
@@ -40,6 +36,16 @@ interface AvailablePlatform {
 }
 
 const IntergrationsContainer: React.FC = () => {
+  const [supabase, setSupabase] = useState<any>(null);
+
+  useEffect(() => {
+    // Initialize Supabase client on the client-side
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+    setSupabase(supabaseClient);
+  }, []);
+
   const [filter, setFilter] = useState('all')
   const [isAddHovered, setIsAddHovered] = useState(false)
   const [showBlockPopup, setShowBlockPopup] = useState(false)
@@ -819,7 +825,7 @@ const IntergrationsContainer: React.FC = () => {
                     </div>
                     <div className="flex flex-col space-y-2">
                       <div className="flex items-center space-x-2">
-                        <Switch
+                        <DynamicSwitch
                           checked={isUnlockable}
                           onCheckedChange={setIsUnlockable}
                           className={`${
@@ -831,7 +837,7 @@ const IntergrationsContainer: React.FC = () => {
                               isUnlockable ? 'translate-x-6' : 'translate-x-1'
                             } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
                           />
-                        </Switch>
+                        </DynamicSwitch>
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                           Unlockable Block
                         </label>
