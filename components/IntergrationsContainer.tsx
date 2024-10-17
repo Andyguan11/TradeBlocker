@@ -38,7 +38,7 @@ const supabase = createClient(
 
 // Add this new interface
 interface AvailablePlatform {
-  description: any;
+  description: string;
   name: string;
   logo: string;
   connected: boolean;
@@ -68,26 +68,26 @@ const IntergrationsContainer: React.FC = () => {
 
   // Add these new state variables
   const [showAddIntegrationModal, setShowAddIntegrationModal] = useState(false);
-  const [availablePlatforms, setAvailablePlatforms] = useState<AvailablePlatform[]>([
+  const [availablePlatforms] = useState<AvailablePlatform[]>([
     {
       name: "TradingView", logo: "/tradingview.png", connected: true,
-      description: undefined
+      description: "Real-time market data and analysis"
     },
     {
       name: "Tradovate", logo: "/tradovate.png", connected: false,
-      description: undefined
+      description: "Futures trading platform"
     },
     {
       name: "NinjaTrader", logo: "/Ninjatrader.png", connected: false,
-      description: undefined
+      description: "Advanced trading platform"
     },
     {
       name: "Metatrader5", logo: "/mt5.png", connected: false,
-      description: undefined
+      description: "Multi-asset trading platform"
     },
     {
       name: "Metatrader4", logo: "/mt4.png", connected: false,
-      description: undefined
+      description: "Forex and CFD trading platform"
     },
   ]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
