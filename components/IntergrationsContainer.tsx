@@ -182,12 +182,6 @@ const IntergrationsContainer: React.FC = () => {
     } else {
       console.log('Created user settings:', data);
       setConnectedPlatforms(["TradingView"]);
-      setIntegrations([{
-        name: "TradingView",
-        description:"",
-        logo: "/tradingview.png",
-        connected: true
-      }]);
     }
     setIsLoading(false);
   };
