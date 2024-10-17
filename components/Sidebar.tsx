@@ -1,11 +1,9 @@
 'use client'
 
-import { useState, useEffect, JSX } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/Sidebarbutton"
-import { Card } from "@/components/ui/SidebarCard"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Intergrationsvatar"
-import { Badge } from "@/components/ui/SidebarBadge"
-import { PlusIcon, ChevronRightIcon, PencilIcon, ChevronLeftIcon, Settings, X } from "lucide-react"
+import { Avatar, AvatarFallback } from "@/components/ui/Intergrationsvatar"
+import { ChevronRightIcon, ChevronLeftIcon, Settings, X } from "lucide-react"
 import { supabase } from "../utils/supabaseClient"
 import { useRouter } from 'next/router'
 
@@ -59,7 +57,7 @@ export function GlassySidebar() {
     { name: 'Settings', icon: <Settings className="h-5 w-5 mr-3" />, path: '/settings' },
   ]
 
-  const handleItemClick = (item: { name: any; icon?: JSX.Element; path: any }) => {
+  const handleItemClick = (item: { name: string; icon?: React.ReactNode; path: string }) => {
     setSelectedItem(item.name)
     router.push(item.path)
   }
