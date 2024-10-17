@@ -1,13 +1,11 @@
-/* eslint-disable react/no-unescaped-entities */
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { MoreVertical, Plus, Shield, X } from 'lucide-react'
+import React, { useState, useEffect } from 'react';
+import { Search, SlidersHorizontal, MoreVertical, Plus, Shield, X, CheckCircle, XCircle } from 'lucide-react'
 import { Poppins } from 'next/font/google'
-import { createClient } from '@supabase/supabase-js'
+import { User, createClient } from '@supabase/supabase-js'
 import { Switch } from '@radix-ui/react-switch';
 import { Checkbox } from "@/components/ui/checkbox"
-import Image from 'next/image'
 
 const poppins = Poppins({ 
   weight: ['400', '500', '600'],
@@ -24,6 +22,15 @@ interface App {
   connected: boolean;
 }
 
+const apps: App[] = [
+  {
+    name: "TradingView",
+    description: "Real-time market data and analysis",
+    logo: "/tradingview.png",
+    connected: true
+  }
+]
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
@@ -31,7 +38,7 @@ const supabase = createClient(
 
 // Add this new interface
 interface AvailablePlatform {
-  description: string;
+  description: any;
   name: string;
   logo: string;
   connected: boolean;
@@ -57,29 +64,30 @@ const IntergrationsContainer: React.FC = () => {
   }>(null);
   const [totalBlocks, setTotalBlocks] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userIdDisplay, setUserIdDisplay] = useState<string | null>(null);
 
   // Add these new state variables
   const [showAddIntegrationModal, setShowAddIntegrationModal] = useState(false);
-  const [availablePlatforms] = useState<AvailablePlatform[]>([
+  const [availablePlatforms, setAvailablePlatforms] = useState<AvailablePlatform[]>([
     {
       name: "TradingView", logo: "/tradingview.png", connected: true,
-      description: "Real-time market data and analysis"
+      description: undefined
     },
     {
       name: "Tradovate", logo: "/tradovate.png", connected: false,
-      description: "Futures trading platform"
+      description: undefined
     },
     {
       name: "NinjaTrader", logo: "/Ninjatrader.png", connected: false,
-      description: "Advanced trading platform"
+      description: undefined
     },
     {
       name: "Metatrader5", logo: "/mt5.png", connected: false,
-      description: "Multi-asset trading platform"
+      description: undefined
     },
     {
       name: "Metatrader4", logo: "/mt4.png", connected: false,
-      description: "Forex and CFD trading platform"
+      description: undefined
     },
   ]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
@@ -89,7 +97,24 @@ const IntergrationsContainer: React.FC = () => {
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(["TradingView"]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchUserSettings = useCallback(async (userId: string) => {
+  useEffect(() => {
+    const fetchUserAndSettings = async () => {
+      setIsLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        setUserIdDisplay(user.id);
+        await fetchUserSettings(user.id);
+      } else {
+        console.error('No user found');
+      }
+      setIsLoading(false);
+    };
+
+    fetchUserAndSettings();
+  }, []);
+
+  const fetchUserSettings = async (userId: string) => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('user_settings')
@@ -147,23 +172,7 @@ const IntergrationsContainer: React.FC = () => {
       }
     }
     setIsLoading(false);
-  }, [availablePlatforms]);  // Add availablePlatforms to the dependency array
-
-  useEffect(() => {
-    const fetchUserAndSettings = async () => {
-      setIsLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        await fetchUserSettings(user.id);
-      } else {
-        console.error('No user found');
-      }
-      setIsLoading(false);
-    };
-
-    fetchUserAndSettings();
-  }, [fetchUserSettings]);
+  };
 
   const createUserSettings = async (userId: string) => {
     setIsLoading(true);
@@ -182,12 +191,6 @@ const IntergrationsContainer: React.FC = () => {
     } else {
       console.log('Created user settings:', data);
       setConnectedPlatforms(["TradingView"]);
-      setIntegrations([{
-        name: "TradingView",
-        description:"",
-        logo: "/tradingview.png",
-        connected: true
-      }]);
     }
     setIsLoading(false);
   };
@@ -200,6 +203,18 @@ const IntergrationsContainer: React.FC = () => {
       minutes: Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60)).toString(),
     });
   };
+
+  const handleSave = () => {
+    // Add save logic here
+    console.log('Saving:', { lossLimit, profitLimit })
+    setShowSettingsPopup(false)
+  }
+
+  const handleDisconnect = () => {
+    // Add disconnect logic here
+    console.log('Disconnecting')
+    setShowSettingsPopup(false)
+  }
 
   const isDurationSet = () => {
     return (
@@ -227,7 +242,7 @@ const IntergrationsContainer: React.FC = () => {
 
     try {
       // Update Supabase
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('user_settings')
         .update({
           block_state: 'active',
@@ -236,6 +251,7 @@ const IntergrationsContainer: React.FC = () => {
           total_blocks: totalBlocks + 1
         })
         .eq('user_id', userId)
+        .select()
         .single();
 
       if (error) {
@@ -315,6 +331,7 @@ const IntergrationsContainer: React.FC = () => {
   };
 
   useEffect(() => {
+    let timer: NodeJS.Timeout;
     const checkBlockStatus = async () => {
       if (userId && activeBlock) {
         const now = new Date();
@@ -346,10 +363,108 @@ const IntergrationsContainer: React.FC = () => {
       }
     };
 
-    const timer = setInterval(checkBlockStatus, 60000); // Check every minute
+    checkBlockStatus(); // Run immediately
+    timer = setInterval(checkBlockStatus, 60000); // Check every minute
 
     return () => clearInterval(timer);
   }, [userId, activeBlock]);
+
+  // Add this useEffect to log state changes
+  useEffect(() => {
+    console.log('Block state changed:', blockState);
+  }, [blockState]);
+
+  const handleBlockAllNow = async () => {
+    console.log('Activating block...');
+    const { data, error: userError } = await supabase.auth.getUser();
+    const user = data?.user;
+    
+    if (userError || !user) {
+      console.error('Error getting user:', userError);
+      return;
+    }
+  
+    console.log('User ID:', user.id);
+  
+    try {
+      // Update Supabase
+      const { error } = await supabase
+        .from('user_settings')
+        .update({ 
+          block_state: 'active',
+          block_end_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Set block for 24 hours
+        })
+        .eq('user_id', user.id);
+  
+      if (error) {
+        throw error;
+      }
+
+      console.log('Block state updated to active');
+    } catch (error) {
+      console.error('Error updating block state:', error);
+    }
+  };
+
+  const updateBlockState = (newState: 'active' | 'inactive') => {
+    setBlockState(newState);
+    console.log('Block state updated to:', newState);
+  };
+
+  const handleBlockNow = async () => {
+    try {
+      const response = await fetch('/api/block-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userId,
+          blockState: true,
+          duration: blockDuration, // Assume you have a state variable for this
+        }),
+      });
+
+      if (response.ok) {
+        // Update local state or show a success message
+        console.log('Block status updated successfully');
+      } else {
+        console.error('Failed to update block status');
+      }
+    } catch (error) {
+      console.error('Error updating block status:', error);
+    }
+  };
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('block-state-changes')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user_settings' }, handleBlockStateChange)
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
+  const handleBlockStateChange = (payload: any) => {
+    const newBlockState = payload.new.block_state
+    setBlockState(newBlockState)
+    if (newBlockState === 'active') {
+      setActiveBlock({
+        end_time: payload.new.block_end_time,
+        is_unlockable: payload.new.is_unlockable,
+      })
+    } else {
+      setActiveBlock(null)
+    }
+    // Instead of directly messaging the extension, we'll update a local storage item
+    // that the extension can listen for
+    localStorage.setItem('tradeBlockerState', JSON.stringify({
+      action: "updateBlockState",
+      isBlocked: newBlockState === 'active'
+    }));
+  }
 
   const handleAddIntegration = () => {
     setShowAddIntegrationModal(true);
@@ -503,7 +618,7 @@ const IntergrationsContainer: React.FC = () => {
                 .map((app, index) => (
                   <div key={index} className="flex items-center justify-between p-4 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
                     <div className="flex items-center space-x-4">
-                      <Image src={app.logo} alt={`${app.name} logo`} width={48} height={48} className="rounded-xl" />
+                      <img src={app.logo} alt={`${app.name} logo`} className="w-12 h-12 rounded-xl" />
                       <div>
                         <h2 className="font-semibold text-gray-800 dark:text-gray-200">{app.name}</h2>
                       </div>
@@ -807,7 +922,7 @@ const IntergrationsContainer: React.FC = () => {
                           onCheckedChange={() => handleSelectPlatform(platform.name)}
                           disabled={connectedPlatforms.includes(platform.name)}
                         />
-                        <Image src={platform.logo} alt={`${platform.name} logo`} width={32} height={32} />
+                        <img src={platform.logo} alt={`${platform.name} logo`} className="w-8 h-8" />
                         <label
                           htmlFor={`checkbox-${platform.name}`}
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
