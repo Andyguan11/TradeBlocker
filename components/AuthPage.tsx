@@ -106,15 +106,12 @@ export default function AuthPage({ mode }: AuthPageProps) {
             }
           ])
 
-          if (authData.session) {
-            router.push('/dashboard')
-          } else {
-            alert('Your account has been created. Please check your email for the confirmation link to complete your registration. If you do not receive an email, please contact support.')
-          }
+          router.push('/dashboard')
         } else {
-          alert('Signup successful, but no user returned. This is unexpected. Please contact support.')
+          throw new Error('Signup successful, but no user returned. This is unexpected.')
         }
       } else {
+        // Login logic remains unchanged
         const { data, error } = await supabase.auth.signInWithPassword({
           email: formData.get('email') as string,
           password: formData.get('password') as string,
