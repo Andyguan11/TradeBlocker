@@ -68,8 +68,9 @@ export default function AuthPage({ mode }: AuthPageProps) {
     setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const formData = new FormData(event.currentTarget as HTMLFormElement)
     setIsLoading(true)
     setError('')
     try {
@@ -77,7 +78,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
         const { data: existingUser } = await supabase
           .from('profiles')
           .select('id')
-          .eq('email', formData.email)
+          .eq('email', formData.get('email'))
           .single()
 
         if (existingUser) {
@@ -85,9 +86,17 @@ export default function AuthPage({ mode }: AuthPageProps) {
           return
         }
 
-        const { data: authData, error: authError } = await supabase.auth.signUp(formData)
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: formData.get('email') as string,
+          password: formData.get('password') as string,
+          options: {
+            data: {
+              full_name: formData.get('full_name') as string,
+            },
+          },
+        });
 
-        if (authError) throw authError
+        if (authError) throw authError;
 
         if (authData.user) {
           await supabase.from('profiles').insert([
@@ -106,7 +115,10 @@ export default function AuthPage({ mode }: AuthPageProps) {
           alert('Signup successful, but no user returned. This is unexpected. Please contact support.')
         }
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword(formData)
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: formData.get('email') as string,
+          password: formData.get('password') as string,
+        })
 
         if (error) throw error
 
@@ -115,9 +127,9 @@ export default function AuthPage({ mode }: AuthPageProps) {
           router.push('/dashboard')
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`${mode === 'signup' ? 'Signup' : 'Login'} error:`, error)
-      setError(error.message || `An unexpected error occurred. Please try again.`)
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.')
     } finally {
       setIsLoading(false)
     }
