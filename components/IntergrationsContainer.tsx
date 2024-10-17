@@ -146,7 +146,7 @@ const IntergrationsContainer: React.FC = () => {
       }
     }
     setIsLoading(false);
-  }, []);  // Empty dependency array, as this function doesn't depend on any props or state
+  }, [availablePlatforms]);  // Add availablePlatforms to the dependency array
 
   useEffect(() => {
     const fetchUserAndSettings = async () => {
