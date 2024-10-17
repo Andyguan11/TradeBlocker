@@ -194,18 +194,6 @@ const IntergrationsContainer: React.FC = () => {
     });
   };
 
-  const handleSave = () => {
-    // Add save logic here
-    console.log('Saving:', { lossLimit, profitLimit })
-    setShowSettingsPopup(false)
-  }
-
-  const handleDisconnect = () => {
-    // Add disconnect logic here
-    console.log('Disconnecting')
-    setShowSettingsPopup(false)
-  }
-
   const isDurationSet = () => {
     return (
       (blockDuration.days && parseInt(blockDuration.days) > 0) ||
@@ -232,7 +220,7 @@ const IntergrationsContainer: React.FC = () => {
 
     try {
       // Update Supabase
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('user_settings')
         .update({
           block_state: 'active',
@@ -241,7 +229,6 @@ const IntergrationsContainer: React.FC = () => {
           total_blocks: totalBlocks + 1
         })
         .eq('user_id', userId)
-        .select()
         .single();
 
       if (error) {
@@ -356,25 +343,6 @@ const IntergrationsContainer: React.FC = () => {
 
     return () => clearInterval(timer);
   }, [userId, activeBlock]);
-
-  const handleBlockStateChange = (payload: { new: { block_state: string; block_end_time: string; is_unlockable: boolean } }) => {
-    const newBlockState = payload.new.block_state
-    setBlockState(newBlockState as 'active' | 'inactive')
-    if (newBlockState === 'active') {
-      setActiveBlock({
-        end_time: payload.new.block_end_time,
-        is_unlockable: payload.new.is_unlockable,
-      })
-    } else {
-      setActiveBlock(null)
-    }
-    // Instead of directly messaging the extension, we'll update a local storage item
-    // that the extension can listen for
-    localStorage.setItem('tradeBlockerState', JSON.stringify({
-      action: "updateBlockState",
-      isBlocked: newBlockState === 'active'
-    }));
-  }
 
   const handleAddIntegration = () => {
     setShowAddIntegrationModal(true);
