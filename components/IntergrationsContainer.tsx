@@ -88,23 +88,6 @@ const IntergrationsContainer: React.FC = () => {
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(["TradingView"]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    const fetchUserAndSettings = async () => {
-      setIsLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        await fetchUserSettings(user.id);
-      } else {
-        console.error('No user found');
-      }
-      setIsLoading(false);
-    };
-
-    fetchUserAndSettings();
-  }, []);  // Keep the empty dependency array
-
   const fetchUserSettings = async (userId: string) => {
     setIsLoading(true);
     const { data, error } = await supabase
@@ -164,6 +147,22 @@ const IntergrationsContainer: React.FC = () => {
     }
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    const fetchUserAndSettings = async () => {
+      setIsLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        await fetchUserSettings(user.id);
+      } else {
+        console.error('No user found');
+      }
+      setIsLoading(false);
+    };
+
+    fetchUserAndSettings();
+  }, []);  // Remove fetchUserSettings from the dependency array
 
   const createUserSettings = async (userId: string) => {
     setIsLoading(true);
