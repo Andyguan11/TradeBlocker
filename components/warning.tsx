@@ -1,6 +1,6 @@
 'use client'
 
-import { X, CheckCircle, XCircle } from "lucide-react"
+import { X } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from '@supabase/supabase-js'
 
