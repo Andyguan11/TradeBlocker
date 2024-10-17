@@ -88,6 +88,7 @@ const IntergrationsContainer: React.FC = () => {
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(["TradingView"]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const fetchUserAndSettings = async () => {
       setIsLoading(true);
@@ -102,7 +103,7 @@ const IntergrationsContainer: React.FC = () => {
     };
 
     fetchUserAndSettings();
-  }, []);
+  }, []);  // Keep the empty dependency array
 
   const fetchUserSettings = async (userId: string) => {
     setIsLoading(true);
