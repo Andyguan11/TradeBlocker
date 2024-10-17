@@ -97,6 +97,11 @@ export function DashboardComponent() {
                   <li>Click on the extension icon and enter your User ID.</li>
                   <li>The extension will now automatically apply your block settings.</li>
                 </ol>
+                {isExtensionConnected && (
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-2">
+                    Extension connected successfully!
+                  </p>
+                )}
               </div>
             )}
           </div>
