@@ -69,20 +69,7 @@ export default function AuthPage() {
     setError('')
 
     try {
-      if (isLogin) {
-        console.log('Attempting to sign in')
-        const { data, error } = await supabase.auth.signInWithPassword(formData)
-        if (error) throw error
-        if (data.user) {
-          if (data.user.email_confirmed_at) {
-            console.log('User signed in successfully');
-            router.push('/dashboard')
-          } else {
-            setError('Please confirm your email address before signing in.');
-          }
-        }
-      } else {
-        console.log('Attempting to sign up')
+      if (!isLogin) {
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -90,14 +77,26 @@ export default function AuthPage() {
         
         if (authError) throw authError
 
-        console.log('Sign up response:', authData)
-
         if (authData.user) {
-          console.log('User signed up successfully')
-          setError('Your account has been created. Please check your email for the confirmation link to complete your registration.')
+          // Immediately sign in the user after signup
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: formData.email,
+            password: formData.password,
+          });
+
+          if (signInError) throw signInError;
+
+          console.log('User signed up and logged in successfully')
+          router.push('/dashboard')
         } else {
-          console.log('Sign up successful, but no user returned')
-          setError('Signup successful, but no user returned. This is unexpected. Please contact support.')
+          throw new Error('Signup failed. Please try again.')
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword(formData)
+        if (error) throw error
+        if (data.user) {
+          console.log('User signed in successfully');
+          router.push('/dashboard')
         }
       }
     } catch (error: unknown) {
