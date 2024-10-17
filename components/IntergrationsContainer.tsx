@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MoreVertical, Plus, Shield, X } from 'lucide-react'
 import { Poppins } from 'next/font/google'
 import { createClient } from '@supabase/supabase-js'
@@ -88,7 +88,7 @@ const IntergrationsContainer: React.FC = () => {
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(["TradingView"]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchUserSettings = async (userId: string) => {
+  const fetchUserSettings = useCallback(async (userId: string) => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('user_settings')
@@ -146,7 +146,7 @@ const IntergrationsContainer: React.FC = () => {
       }
     }
     setIsLoading(false);
-  };
+  }, []);  // Empty dependency array, as this function doesn't depend on any props or state
 
   useEffect(() => {
     const fetchUserAndSettings = async () => {
@@ -162,7 +162,7 @@ const IntergrationsContainer: React.FC = () => {
     };
 
     fetchUserAndSettings();
-  }, [fetchUserSettings]);  // Add fetchUserSettings to the dependency array
+  }, [fetchUserSettings]);
 
   const createUserSettings = async (userId: string) => {
     setIsLoading(true);
