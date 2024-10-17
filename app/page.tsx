@@ -131,7 +131,13 @@ export default function AuthPage() {
         {/* Left side - Auth form */}
         <div className="w-full lg:w-1/2 p-8 flex flex-col">
           <div className="flex flex-col items-center mb-8">
-            <Image src="/logo.png" alt="TradeBlocker Logo" width={64} height={64} className="mb-4" />
+            <Image 
+              src="/logo.png" 
+              alt="TradeBlocker Logo" 
+              width={64} 
+              height={64} 
+              className="mb-4"
+            />
             <h1 className="text-3xl font-bold">TradeBlocker</h1>
           </div>
           
