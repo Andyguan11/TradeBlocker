@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, ChevronDown, Moon, Sun } from "lucide-react"
+import { ChevronDown, Moon, Sun } from "lucide-react"
 import Image from "next/image"
 import { useState, useEffect, useRef } from "react"
 import { supabase } from "../utils/supabaseClient"
