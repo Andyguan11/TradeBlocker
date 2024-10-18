@@ -1,4 +1,4 @@
-/* eslint-disable react/no-unescaped-entities */
+/// <reference types="chrome"/>
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -291,6 +291,7 @@ const IntergrationsContainer: React.FC = () => {
       }
 
       console.log('Block activated, new state:', 'active', 'end time:', endTime);
+      notifyExtension(true);
     } catch (error) {
       console.error('Error activating block:', error);
       // Revert local state if server update fails
@@ -323,6 +324,7 @@ const IntergrationsContainer: React.FC = () => {
       }
 
       console.log('Block deactivated');
+      notifyExtension(false);
     } catch (error) {
       console.error('Error removing block:', error);
       // Revert local state if server update fails
@@ -370,6 +372,7 @@ const IntergrationsContainer: React.FC = () => {
           if (error) {
             console.error('Error updating block state in database:', error);
           }
+          notifyExtension(false);
         } else {
           // Block is still active
           setLocalBlockState('active');
@@ -439,6 +442,12 @@ const IntergrationsContainer: React.FC = () => {
   const currentIntegrations = integrations.slice(indexOfFirstIntegration, indexOfLastIntegration);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  const notifyExtension = (isBlocked: boolean) => {
+    if (typeof window !== 'undefined' && 'chrome' in window && chrome.runtime) {
+      chrome.runtime.sendMessage({action: "updateBlockState", isBlocked: isBlocked});
+    }
+  };
 
   return (
     <div className={`w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${poppins.className}`}>
