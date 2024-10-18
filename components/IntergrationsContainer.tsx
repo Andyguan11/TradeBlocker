@@ -48,7 +48,6 @@ const IntergrationsContainer: React.FC = () => {
   const [showComingSoon, setShowComingSoon] = useState(false)
   const [showComingSoonIntegration, setShowComingSoonIntegration] = useState(false)
   const [blockDuration, setBlockDuration] = useState({ days: '', hours: '', minutes: '' });
-  const [blockState, setBlockState] = useState<'active' | 'inactive'>('inactive');
   const [isUnlockable, setIsUnlockable] = useState(false);
   const [showBlockConfirmation, setShowBlockConfirmation] = useState(false);
   const [activeBlock, setActiveBlock] = useState<null | {
@@ -113,7 +112,7 @@ const IntergrationsContainer: React.FC = () => {
     if (data) {
       console.log('Fetched user settings:', data);
       setTotalBlocks(data.total_blocks || 0);
-      setBlockState(data.block_state || 'inactive');
+      setLocalBlockState(data.block_state || 'inactive');
       // Ensure TradingView is always included in connected platforms
       const platforms = data.connected_platforms || [];
       if (!platforms.includes("TradingView")) {
@@ -270,7 +269,6 @@ const IntergrationsContainer: React.FC = () => {
       end_time: endTime.toISOString(),
       is_unlockable: isUnlockable,
     });
-    setBlockState('active');
     setTotalBlocks(prevTotalBlocks => prevTotalBlocks + 1);
     updateBlockDuration(endTime);
     setShowBlockConfirmation(false);
@@ -298,7 +296,6 @@ const IntergrationsContainer: React.FC = () => {
       // Revert local state if server update fails
       setLocalBlockState('inactive');
       setActiveBlock(null);
-      setBlockState('inactive');
       setTotalBlocks(prevTotalBlocks => prevTotalBlocks - 1);
       setBlockDuration({ days: '', hours: '', minutes: '' });
     }
@@ -310,7 +307,6 @@ const IntergrationsContainer: React.FC = () => {
     // Optimistically update local state
     setLocalBlockState('inactive');
     setActiveBlock(null);
-    setBlockState('inactive');
     setBlockDuration({ days: '', hours: '', minutes: '' });
 
     try {
@@ -332,7 +328,6 @@ const IntergrationsContainer: React.FC = () => {
       // Revert local state if server update fails
       setLocalBlockState('active');
       setActiveBlock(activeBlock);
-      setBlockState('active');
       updateBlockDuration(new Date(activeBlock.end_time));
     }
   };
@@ -359,7 +354,7 @@ const IntergrationsContainer: React.FC = () => {
         if (endTime <= now) {
           // Block has expired
           setActiveBlock(null);
-          setBlockState('inactive');
+          setLocalBlockState('inactive');
           setBlockDuration({ days: '', hours: '', minutes: '' });
           console.log('Block expired, new state:', 'inactive');
 
@@ -377,7 +372,7 @@ const IntergrationsContainer: React.FC = () => {
           }
         } else {
           // Block is still active
-          setBlockState('active');
+          setLocalBlockState('active');
           updateBlockDuration(endTime);
         }
       }
