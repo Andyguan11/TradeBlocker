@@ -770,8 +770,8 @@ const IntergrationsContainer: React.FC = () => {
                       </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {isUnlockable 
-                            ? &quot;Unlockable: You can remove the block before the set duration ends.&quot;
-                            : &quot;Lockable: Once set, the block cannot be removed until the duration ends.&quot;}
+                            ? "Unlockable: You can remove the block before the set duration ends."
+                            : "Lockable: Once set, the block cannot be removed until the duration ends."}
                         </p>
                     </div>
                     <div>
