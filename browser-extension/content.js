@@ -1,4 +1,4 @@
-let isBlocked = false; // Default to unblocked state
+let isBlocked = false;
 let isSetup = false;
 
 // TradingView-specific elements to block
@@ -22,48 +22,57 @@ function removeBlockingBehavior() {
 }
 
 function applyFullPageBlock() {
-  const overlay = document.createElement('div');
-  overlay.id = 'tradeBlocker-overlay';
-  overlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: black;
-    color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    font-size: 24px;
-  `;
-  overlay.textContent = 'Trading is currently blocked.';
-  document.body.appendChild(overlay);
+  let overlay = document.getElementById('tradeBlocker-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'tradeBlocker-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: black;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2147483647;
+      font-size: 24px;
+    `;
+    overlay.textContent = 'Trading is currently blocked.';
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display = 'flex';
 }
 
 function removeFullPageBlock() {
-  const existingOverlay = document.getElementById('tradeBlocker-overlay');
-  if (existingOverlay) {
-    existingOverlay.remove();
+  const overlay = document.getElementById('tradeBlocker-overlay');
+  if (overlay) {
+    overlay.style.display = 'none';
   }
 }
 
 function updateBlockingState(shouldBlock) {
-  if (isBlocked !== shouldBlock) {
-    isBlocked = shouldBlock;
-    if (isBlocked && isSetup) {
-      if (window.location.hostname.includes('tradingview.com')) {
-        applyTradingViewBlocking();
-      } else {
-        applyFullPageBlock();
-      }
+  isBlocked = shouldBlock;
+  if (isBlocked && isSetup) {
+    if (window.location.hostname.includes('tradingview.com')) {
+      applyTradingViewBlocking();
     } else {
-      removeBlockingBehavior();
-      removeFullPageBlock();
+      applyFullPageBlock();
     }
-    console.log(`Blocking ${isBlocked && isSetup ? 'applied' : 'removed'}`);
+  } else {
+    removeBlockingBehavior();
+    removeFullPageBlock();
   }
+  console.log(`Blocking ${isBlocked && isSetup ? 'applied' : 'removed'}`);
+}
+
+// Apply blocking immediately if the page is already loaded
+if (document.readyState === 'complete') {
+  updateBlockingState(isBlocked);
+} else {
+  window.addEventListener('load', () => updateBlockingState(isBlocked));
 }
 
 // Request initial block state from background script
@@ -88,7 +97,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "updateBlockState") {
     isSetup = true;
     updateBlockingState(request.isBlocked);
-    sendResponse({ success: true });
+    console.log('Received updateBlockState message:', request.isBlocked);
+    sendResponse({success: true});
   }
 });
 

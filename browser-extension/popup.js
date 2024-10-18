@@ -87,7 +87,6 @@ document.addEventListener('DOMContentLoaded', function() {
       userIdInput.disabled = true;
       blockConfigSection.style.display = 'none';
       
-      // Remove any existing unblock button
       const existingUnblockButton = document.getElementById('unblockButton');
       if (existingUnblockButton) {
         existingUnblockButton.remove();
@@ -136,7 +135,6 @@ document.addEventListener('DOMContentLoaded', function() {
       connectedPlatforms = data.connected_platforms || ["TradingView"];
       updatePlatformList();
 
-      // Check if block is active and update UI accordingly
       const now = new Date();
       const endTime = new Date(data.block_end_time);
       const isBlocked = data.block_state === 'active' && endTime > now;
@@ -183,6 +181,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  // Add this function to notify all tabs about the block state change
+  function notifyAllTabs(isBlocked) {
+    chrome.tabs.query({}, function(tabs) {
+      tabs.forEach(tab => {
+        chrome.tabs.sendMessage(tab.id, {action: "updateBlockState", isBlocked: isBlocked});
+      });
+    });
+  }
+
   async function handleBlockActivation() {
     if (!isDurationSet() || !userId) {
       alert("Please set a duration for the block and ensure User ID is set.");
@@ -194,6 +201,26 @@ document.addEventListener('DOMContentLoaded', function() {
     endTime.setHours(endTime.getHours() + (parseInt(blockDuration.hours) || 0));
     endTime.setMinutes(endTime.getMinutes() + (parseInt(blockDuration.minutes) || 0));
 
+    // Immediately update local state
+    const blockInfo = {
+      action: "updateBlockState",
+      isBlocked: true,
+      endTime: endTime.toISOString(),
+      blockedPlatforms: connectedPlatforms
+    };
+    chrome.storage.local.set({ tradeBlockerState: blockInfo }, function() {
+      console.log('Block state saved to local storage');
+    });
+
+    // Update UI immediately
+    statusElement.textContent = `Block active until ${endTime.toLocaleString()}`;
+    blockConfigSection.style.display = 'none';
+    updateUIBasedOnBlockState(true, isUnlockable);
+
+    // Notify all tabs immediately
+    notifyAllTabs(true);
+
+    // Then update server state
     try {
       const { data, error } = await supabaseClient
         .from('user_settings')
@@ -210,32 +237,33 @@ document.addEventListener('DOMContentLoaded', function() {
       if (error) throw error;
 
       totalBlocks += 1;
-      console.log('Block activated, new state: active, end time:', endTime);
-
-      // Update local storage for extension
-      const blockInfo = {
-        action: "updateBlockState",
-        isBlocked: true,
-        endTime: endTime.toISOString(),
-        blockedPlatforms: connectedPlatforms
-      };
-      chrome.storage.local.set({ tradeBlockerState: blockInfo }, function() {
-        console.log('Block state saved to local storage');
-      });
-
-      // Update UI to reflect active block
-      statusElement.textContent = `Block active until ${endTime.toLocaleString()}`;
-      blockConfigSection.style.display = 'none';
-
-      updateUIBasedOnBlockState(true);
-
+      console.log('Block activated on server, new state: active, end time:', endTime);
     } catch (error) {
-      console.error('Error activating block:', error);
-      alert('Error activating block. Please try again.');
+      console.error('Error activating block on server:', error);
+      alert('Error syncing block state with server. Local block is active, but may not persist.');
     }
   }
 
   async function handleUnblock() {
+    // Immediately update local state
+    const blockInfo = {
+      action: "updateBlockState",
+      isBlocked: false,
+      endTime: null,
+      blockedPlatforms: []
+    };
+    chrome.storage.local.set({ tradeBlockerState: blockInfo }, function() {
+      console.log('Block state updated in local storage');
+    });
+
+    // Update UI immediately
+    statusElement.textContent = 'Block deactivated';
+    updateUIBasedOnBlockState(false, false);
+
+    // Notify all tabs immediately
+    notifyAllTabs(false);
+
+    // Then update server state
     try {
       const { error } = await supabaseClient
         .from('user_settings')
@@ -246,36 +274,51 @@ document.addEventListener('DOMContentLoaded', function() {
         .eq('user_id', userId);
 
       if (error) throw error;
-
-      console.log('Block deactivated');
-      statusElement.textContent = 'Block deactivated';
-      updateUIBasedOnBlockState(false, false);
-
-      // Update local storage
-      const blockInfo = {
-        action: "updateBlockState",
-        isBlocked: false,
-        endTime: null,
-        blockedPlatforms: []
-      };
-      chrome.storage.local.set({ tradeBlockerState: blockInfo }, function() {
-        console.log('Block state updated in local storage');
-      });
-
+      console.log('Block deactivated on server');
     } catch (error) {
-      console.error('Error removing block:', error);
+      console.error('Error removing block on server:', error);
+      alert('Error syncing unblock state with server. Local unblock is active, but may not persist.');
     }
   }
 
-  // Add an event listener for changes in chrome.storage
-  chrome.storage.onChanged.addListener(function(changes, namespace) {
-    for (let key in changes) {
-      if (key === 'tradeBlockerState') {
-        const newValue = changes[key].newValue;
-        if (newValue && newValue.isBlocked !== undefined) {
-          updateUIBasedOnBlockState(newValue.isBlocked);
+  // Add a function to periodically sync with server
+  function startServerSync() {
+    setInterval(async () => {
+      if (userId) {
+        try {
+          const { data, error } = await supabaseClient
+            .from('user_settings')
+            .select('block_state, block_end_time, is_unlockable')
+            .eq('user_id', userId)
+            .single();
+
+          if (error) throw error;
+
+          const now = new Date();
+          const endTime = new Date(data.block_end_time);
+          const isBlocked = data.block_state === 'active' && endTime > now;
+
+          // Update local state if it differs from server state
+          chrome.storage.local.get('tradeBlockerState', function(result) {
+            const localState = result.tradeBlockerState;
+            if (localState && localState.isBlocked !== isBlocked) {
+              const newBlockInfo = {
+                action: "updateBlockState",
+                isBlocked: isBlocked,
+                endTime: isBlocked ? data.block_end_time : null,
+                blockedPlatforms: isBlocked ? connectedPlatforms : []
+              };
+              chrome.storage.local.set({ tradeBlockerState: newBlockInfo });
+              updateUIBasedOnBlockState(isBlocked, data.is_unlockable);
+            }
+          });
+        } catch (error) {
+          console.error('Error syncing with server:', error);
         }
       }
-    }
-  });
+    }, 60000); // Sync every minute
+  }
+
+  // Call this function when the popup is loaded
+  startServerSync();
 });

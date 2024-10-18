@@ -1,4 +1,5 @@
-/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable @typescript-eslint/no-unused-vars, react/no-unescaped-entities */
+/// <reference types="chrome"/>
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -48,7 +49,6 @@ const IntergrationsContainer: React.FC = () => {
   const [showComingSoon, setShowComingSoon] = useState(false)
   const [showComingSoonIntegration, setShowComingSoonIntegration] = useState(false)
   const [blockDuration, setBlockDuration] = useState({ days: '', hours: '', minutes: '' });
-  const [blockState, setBlockState] = useState<'active' | 'inactive'>('inactive');
   const [isUnlockable, setIsUnlockable] = useState(false);
   const [showBlockConfirmation, setShowBlockConfirmation] = useState(false);
   const [activeBlock, setActiveBlock] = useState<null | {
@@ -89,6 +89,19 @@ const IntergrationsContainer: React.FC = () => {
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(["TradingView"]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [localBlockState, setLocalBlockState] = useState<'active' | 'inactive'>('inactive');
+
+  // Add this function near the top of your component
+  const notifyExtension = (isBlocked: boolean) => {
+    try {
+      if (typeof window !== 'undefined' && 'chrome' in window && chrome.runtime) {
+        chrome.runtime.sendMessage({action: "updateBlockState", isBlocked: isBlocked});
+      }
+    } catch (error) {
+      console.error('Error notifying extension:', error);
+    }
+  };
+
   const fetchUserSettings = useCallback(async (userId: string) => {
     setIsLoading(true);
     const { data, error } = await supabase
@@ -111,7 +124,7 @@ const IntergrationsContainer: React.FC = () => {
     if (data) {
       console.log('Fetched user settings:', data);
       setTotalBlocks(data.total_blocks || 0);
-      setBlockState(data.block_state || 'inactive');
+      setLocalBlockState(data.block_state || 'inactive');
       // Ensure TradingView is always included in connected platforms
       const platforms = data.connected_platforms || [];
       if (!platforms.includes("TradingView")) {
@@ -262,6 +275,16 @@ const IntergrationsContainer: React.FC = () => {
     endTime.setHours(endTime.getHours() + (parseInt(blockDuration.hours) || 0));
     endTime.setMinutes(endTime.getMinutes() + (parseInt(blockDuration.minutes) || 0));
 
+    // Optimistically update local state
+    setLocalBlockState('active');
+    setActiveBlock({
+      end_time: endTime.toISOString(),
+      is_unlockable: isUnlockable,
+    });
+    setTotalBlocks(prevTotalBlocks => prevTotalBlocks + 1);
+    updateBlockDuration(endTime);
+    setShowBlockConfirmation(false);
+
     try {
       // Update Supabase
       const { error } = await supabase
@@ -275,36 +298,27 @@ const IntergrationsContainer: React.FC = () => {
         .eq('user_id', userId)
         .single();
 
-      if (error) {
-        throw error;
-      }
-
-      setActiveBlock({
-        end_time: endTime.toISOString(),
-        is_unlockable: isUnlockable,
-      });
-      setBlockState('active');
-      setTotalBlocks(totalBlocks + 1);
-      updateBlockDuration(endTime);
-      setShowBlockConfirmation(false);
-
-      // Send message to extension with updated block information
-      const blockInfo = {
-        action: "updateBlockState",
-        isBlocked: true,
-        endTime: endTime.toISOString(),
-        blockedPlatforms: connectedPlatforms
-      };
-      localStorage.setItem('tradeBlockerState', JSON.stringify(blockInfo));
+      if (error) throw error;
 
       console.log('Block activated, new state:', 'active', 'end time:', endTime);
+      notifyExtension(true);  // Notify the extension
     } catch (error) {
       console.error('Error activating block:', error);
+      // Revert local state if server update fails
+      setLocalBlockState('inactive');
+      setActiveBlock(null);
+      setTotalBlocks(prevTotalBlocks => prevTotalBlocks - 1);
+      setBlockDuration({ days: '', hours: '', minutes: '' });
     }
   };
 
   const handleUnblock = async () => {
     if (!userId || !activeBlock) return;
+
+    // Optimistically update local state
+    setLocalBlockState('inactive');
+    setActiveBlock(null);
+    setBlockDuration({ days: '', hours: '', minutes: '' });
 
     try {
       const { error } = await supabase
@@ -315,25 +329,16 @@ const IntergrationsContainer: React.FC = () => {
         })
         .eq('user_id', userId);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      setActiveBlock(null);
-      setBlockState('inactive');
-      setBlockDuration({ days: '', hours: '', minutes: '' });
       console.log('Block deactivated');
-
-      // Send message to extension with updated block information
-      const blockInfo = {
-        action: "updateBlockState",
-        isBlocked: false,
-        endTime: null,
-        blockedPlatforms: []
-      };
-      localStorage.setItem('tradeBlockerState', JSON.stringify(blockInfo));
+      notifyExtension(false);  // Notify the extension
     } catch (error) {
       console.error('Error removing block:', error);
+      // Revert local state if server update fails
+      setLocalBlockState('active');
+      setActiveBlock(activeBlock);
+      updateBlockDuration(new Date(activeBlock.end_time));
     }
   };
 
@@ -359,7 +364,7 @@ const IntergrationsContainer: React.FC = () => {
         if (endTime <= now) {
           // Block has expired
           setActiveBlock(null);
-          setBlockState('inactive');
+          setLocalBlockState('inactive');
           setBlockDuration({ days: '', hours: '', minutes: '' });
           console.log('Block expired, new state:', 'inactive');
 
@@ -375,14 +380,17 @@ const IntergrationsContainer: React.FC = () => {
           if (error) {
             console.error('Error updating block state in database:', error);
           }
+          notifyExtension(false);
         } else {
           // Block is still active
-          setBlockState('active');
+          setLocalBlockState('active');
           updateBlockDuration(endTime);
+          notifyExtension(true);  // Add this line
         }
       }
     };
 
+    checkBlockStatus();  // Call immediately
     const timer = setInterval(checkBlockStatus, 60000); // Check every minute
 
     return () => clearInterval(timer);
@@ -455,7 +463,7 @@ const IntergrationsContainer: React.FC = () => {
         <>
           {/* Block now banner */}
           <div className="bg-gradient-to-b from-red-50 to-white dark:from-red-900 dark:to-gray-800 p-3 flex flex-col items-center justify-center">
-            {blockState === 'inactive' ? (
+            {localBlockState === 'inactive' ? (
               <div 
                 className="flex items-center space-x-2 cursor-pointer mb-2"
                 onClick={() => setShowBlockConfirmation(true)}
@@ -706,7 +714,7 @@ const IntergrationsContainer: React.FC = () => {
             )}
 
             {/* Block Configuration Popup */}
-            {showBlockConfirmation && blockState === 'inactive' && (
+            {showBlockConfirmation && localBlockState === 'inactive' && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-96">
                   <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Configure Block</h2>
@@ -765,8 +773,8 @@ const IntergrationsContainer: React.FC = () => {
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         {isUnlockable 
-                          ? "Unlockable: You can remove the block before the set duration ends."
-                          : "Lockable: Once set, the block cannot be removed until the duration ends."}
+                          ? <>Unlockable: You can remove the block before the set duration ends.</>
+                          : <>Lockable: Once set, the block cannot be removed until the duration ends.</>}
                       </p>
                     </div>
                     <div>

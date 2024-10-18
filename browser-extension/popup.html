@@ -15,10 +15,19 @@
       background-color: #1f2937;
       color: #f3f4f6;
     }
+    .logo-container {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .logo {
+      width: 80px;
+      height: auto;
+    }
     h1 {
       font-size: 1.5rem;
       font-weight: 600;
       margin-bottom: 1rem;
+      text-align: center;
     }
     input, button {
       width: 100%;
@@ -115,6 +124,9 @@
   </style>
 </head>
 <body>
+  <div class="logo-container">
+    <img src="logo.png" alt="TradeBlocker Logo" class="logo">
+  </div>
   <h1>TradeBlocker</h1>
   <input type="text" id="userId" placeholder="Enter your User ID">
   <button id="saveButton">Save</button>
@@ -147,7 +159,11 @@
     <button id="activateBlock">Activate Block</button>
   </div>
 
-  <p class="info-message">Select platforms to block in the main dashboard</p>
+  <p class="info-message">
+    <a href="https://trade-blocker.vercel.app/" target="_blank" style="color: #3b82f6; text-decoration: underline;">
+      Select platforms to block in the main dashboard
+    </a>
+  </p>
 
   <script src="supabase.js"></script>
   <script src="popup.js"></script>
