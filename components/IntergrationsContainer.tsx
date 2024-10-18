@@ -90,6 +90,17 @@ const IntergrationsContainer: React.FC = () => {
 
   const [localBlockState, setLocalBlockState] = useState<'active' | 'inactive'>('inactive');
 
+  // Add this function near the top of your component
+  const notifyExtension = (isBlocked: boolean) => {
+    try {
+      if (typeof window !== 'undefined' && 'chrome' in window && chrome.runtime) {
+        chrome.runtime.sendMessage({action: "updateBlockState", isBlocked: isBlocked});
+      }
+    } catch (error) {
+      console.error('Error notifying extension:', error);
+    }
+  };
+
   const fetchUserSettings = useCallback(async (userId: string) => {
     setIsLoading(true);
     const { data, error } = await supabase
@@ -286,12 +297,10 @@ const IntergrationsContainer: React.FC = () => {
         .eq('user_id', userId)
         .single();
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       console.log('Block activated, new state:', 'active', 'end time:', endTime);
-      notifyExtension(true);
+      notifyExtension(true);  // Notify the extension
     } catch (error) {
       console.error('Error activating block:', error);
       // Revert local state if server update fails
@@ -319,12 +328,10 @@ const IntergrationsContainer: React.FC = () => {
         })
         .eq('user_id', userId);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       console.log('Block deactivated');
-      notifyExtension(false);
+      notifyExtension(false);  // Notify the extension
     } catch (error) {
       console.error('Error removing block:', error);
       // Revert local state if server update fails
@@ -442,12 +449,6 @@ const IntergrationsContainer: React.FC = () => {
   const currentIntegrations = integrations.slice(indexOfFirstIntegration, indexOfLastIntegration);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
-  const notifyExtension = (isBlocked: boolean) => {
-    if (typeof window !== 'undefined' && 'chrome' in window && chrome.runtime) {
-      chrome.runtime.sendMessage({action: "updateBlockState", isBlocked: isBlocked});
-    }
-  };
 
   return (
     <div className={`w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${poppins.className}`}>

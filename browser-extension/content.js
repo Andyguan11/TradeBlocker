@@ -86,7 +86,9 @@ if (window.location.hostname.includes('tradingview.com')) {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "updateBlockState") {
+    isSetup = true;  // Ensure isSetup is true when receiving a message
     updateBlockingState(request.isBlocked);
+    sendResponse({success: true});
   }
 });
 

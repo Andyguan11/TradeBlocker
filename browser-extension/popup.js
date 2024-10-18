@@ -181,6 +181,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  // Add this function to notify all tabs about the block state change
+  function notifyAllTabs(isBlocked) {
+    chrome.tabs.query({}, function(tabs) {
+      tabs.forEach(tab => {
+        chrome.tabs.sendMessage(tab.id, {action: "updateBlockState", isBlocked: isBlocked});
+      });
+    });
+  }
+
   async function handleBlockActivation() {
     if (!isDurationSet() || !userId) {
       alert("Please set a duration for the block and ensure User ID is set.");
@@ -207,6 +216,9 @@ document.addEventListener('DOMContentLoaded', function() {
     statusElement.textContent = `Block active until ${endTime.toLocaleString()}`;
     blockConfigSection.style.display = 'none';
     updateUIBasedOnBlockState(true, isUnlockable);
+
+    // Notify all tabs immediately
+    notifyAllTabs(true);
 
     // Then update server state
     try {
@@ -247,6 +259,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update UI immediately
     statusElement.textContent = 'Block deactivated';
     updateUIBasedOnBlockState(false, false);
+
+    // Notify all tabs immediately
+    notifyAllTabs(false);
 
     // Then update server state
     try {
