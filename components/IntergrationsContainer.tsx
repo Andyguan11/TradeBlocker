@@ -450,6 +450,9 @@ const IntergrationsContainer: React.FC = () => {
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
+  const unlockableText = 'Unlockable: You can remove the block before the set duration ends.';
+  const lockableText = 'Lockable: Once set, the block cannot be removed until the duration ends.';
+
   return (
     <div className={`w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${poppins.className}`}>
       {isLoading ? (
@@ -768,11 +771,9 @@ const IntergrationsContainer: React.FC = () => {
                           Unlockable Block
                         </label>
                       </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {isUnlockable 
-                            ? "Unlockable: You can remove the block before the set duration ends."
-                            : "Lockable: Once set, the block cannot be removed until the duration ends."}
-                        </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {isUnlockable ? unlockableText : lockableText}
+                      </p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
