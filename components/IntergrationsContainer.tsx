@@ -89,6 +89,8 @@ const IntergrationsContainer: React.FC = () => {
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(["TradingView"]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [localBlockState, setLocalBlockState] = useState<'active' | 'inactive'>('inactive');
+
   const fetchUserSettings = useCallback(async (userId: string) => {
     setIsLoading(true);
     const { data, error } = await supabase
@@ -262,6 +264,17 @@ const IntergrationsContainer: React.FC = () => {
     endTime.setHours(endTime.getHours() + (parseInt(blockDuration.hours) || 0));
     endTime.setMinutes(endTime.getMinutes() + (parseInt(blockDuration.minutes) || 0));
 
+    // Optimistically update local state
+    setLocalBlockState('active');
+    setActiveBlock({
+      end_time: endTime.toISOString(),
+      is_unlockable: isUnlockable,
+    });
+    setBlockState('active');
+    setTotalBlocks(prevTotalBlocks => prevTotalBlocks + 1);
+    updateBlockDuration(endTime);
+    setShowBlockConfirmation(false);
+
     try {
       // Update Supabase
       const { error } = await supabase
@@ -279,32 +292,26 @@ const IntergrationsContainer: React.FC = () => {
         throw error;
       }
 
-      setActiveBlock({
-        end_time: endTime.toISOString(),
-        is_unlockable: isUnlockable,
-      });
-      setBlockState('active');
-      setTotalBlocks(totalBlocks + 1);
-      updateBlockDuration(endTime);
-      setShowBlockConfirmation(false);
-
-      // Send message to extension with updated block information
-      const blockInfo = {
-        action: "updateBlockState",
-        isBlocked: true,
-        endTime: endTime.toISOString(),
-        blockedPlatforms: connectedPlatforms
-      };
-      localStorage.setItem('tradeBlockerState', JSON.stringify(blockInfo));
-
       console.log('Block activated, new state:', 'active', 'end time:', endTime);
     } catch (error) {
       console.error('Error activating block:', error);
+      // Revert local state if server update fails
+      setLocalBlockState('inactive');
+      setActiveBlock(null);
+      setBlockState('inactive');
+      setTotalBlocks(prevTotalBlocks => prevTotalBlocks - 1);
+      setBlockDuration({ days: '', hours: '', minutes: '' });
     }
   };
 
   const handleUnblock = async () => {
     if (!userId || !activeBlock) return;
+
+    // Optimistically update local state
+    setLocalBlockState('inactive');
+    setActiveBlock(null);
+    setBlockState('inactive');
+    setBlockDuration({ days: '', hours: '', minutes: '' });
 
     try {
       const { error } = await supabase
@@ -319,21 +326,14 @@ const IntergrationsContainer: React.FC = () => {
         throw error;
       }
 
-      setActiveBlock(null);
-      setBlockState('inactive');
-      setBlockDuration({ days: '', hours: '', minutes: '' });
       console.log('Block deactivated');
-
-      // Send message to extension with updated block information
-      const blockInfo = {
-        action: "updateBlockState",
-        isBlocked: false,
-        endTime: null,
-        blockedPlatforms: []
-      };
-      localStorage.setItem('tradeBlockerState', JSON.stringify(blockInfo));
     } catch (error) {
       console.error('Error removing block:', error);
+      // Revert local state if server update fails
+      setLocalBlockState('active');
+      setActiveBlock(activeBlock);
+      setBlockState('active');
+      updateBlockDuration(new Date(activeBlock.end_time));
     }
   };
 
@@ -455,7 +455,7 @@ const IntergrationsContainer: React.FC = () => {
         <>
           {/* Block now banner */}
           <div className="bg-gradient-to-b from-red-50 to-white dark:from-red-900 dark:to-gray-800 p-3 flex flex-col items-center justify-center">
-            {blockState === 'inactive' ? (
+            {localBlockState === 'inactive' ? (
               <div 
                 className="flex items-center space-x-2 cursor-pointer mb-2"
                 onClick={() => setShowBlockConfirmation(true)}
@@ -706,7 +706,7 @@ const IntergrationsContainer: React.FC = () => {
             )}
 
             {/* Block Configuration Popup */}
-            {showBlockConfirmation && blockState === 'inactive' && (
+            {showBlockConfirmation && localBlockState === 'inactive' && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-96">
                   <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Configure Block</h2>
