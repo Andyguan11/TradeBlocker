@@ -21,6 +21,12 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession()
 
+  // Allow access to the root path ('/') and '/dashboard' for all users
+  if (req.nextUrl.pathname === '/' || req.nextUrl.pathname === '/dashboard') {
+    return res
+  }
+
+  // Redirect unauthenticated users to the root path for other protected routes
   if (!session && req.nextUrl.pathname !== '/') {
     return NextResponse.redirect(new URL('/', req.url))
   }

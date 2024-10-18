@@ -149,21 +149,64 @@ const IntergrationsContainer: React.FC = () => {
     setIsLoading(false);
   }, [availablePlatforms]);  // Add availablePlatforms to the dependency array
 
+  const fetchConnectedPlatforms = useCallback(async (userId: string) => {
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('connected_platforms')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching connected platforms:', error);
+      return [];
+    }
+
+    return data?.connected_platforms || [];
+  }, []);
+
+  const updateConnectedPlatforms = useCallback(async (userId: string, platforms: string[]) => {
+    const { error } = await supabase
+      .from('user_settings')
+      .update({ connected_platforms: platforms })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error updating connected platforms:', error);
+    }
+  }, []);
+
   useEffect(() => {
-    const fetchUserAndSettings = async () => {
+    const initializeUserSettings = async () => {
       setIsLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
+        let platforms = await fetchConnectedPlatforms(user.id);
+        
+        if (platforms.length === 0) {
+          // If no platforms are connected, add TradingView as default
+          platforms = ["TradingView"];
+          await updateConnectedPlatforms(user.id, platforms);
+        }
+
+        setConnectedPlatforms(platforms);
+        const updatedIntegrations = platforms.map((platformName: string) => {
+          const platform = availablePlatforms.find(p => p.name === platformName);
+          return {
+            name: platformName,
+            description: platform ? platform.description : "Connected platform",
+            logo: platform ? platform.logo : "/default-logo.png",
+            connected: true
+          };
+        });
+        setIntegrations(updatedIntegrations);
         await fetchUserSettings(user.id);
-      } else {
-        console.error('No user found');
       }
       setIsLoading(false);
     };
 
-    fetchUserAndSettings();
-  }, [fetchUserSettings]);
+    initializeUserSettings();
+  }, [fetchConnectedPlatforms, updateConnectedPlatforms, fetchUserSettings, availablePlatforms]);
 
   const createUserSettings = async (userId: string) => {
     setIsLoading(true);
@@ -363,11 +406,13 @@ const IntergrationsContainer: React.FC = () => {
   };
 
   const handleConfirmAddIntegrations = async () => {
+    if (!userId) return;
+
     const newIntegrations = selectedPlatforms.map(platformName => {
       const platform = availablePlatforms.find(p => p.name === platformName);
       return {
         name: platform!.name,
-        description: "New integration",
+        description: platform!.description,
         logo: platform!.logo,
         connected: true
       };
@@ -375,41 +420,23 @@ const IntergrationsContainer: React.FC = () => {
 
     const updatedConnectedPlatforms = [...connectedPlatforms, ...selectedPlatforms];
 
-    // Update the database
-    const { error } = await supabase
-      .from('user_settings')
-      .update({ connected_platforms: updatedConnectedPlatforms })
-      .eq('user_id', userId);
-
-    if (error) {
-      console.error('Error updating connected platforms:', error);
-    } else {
-      setConnectedPlatforms(updatedConnectedPlatforms);
-      setIntegrations(prev => [...prev, ...newIntegrations]);
-      handleCloseAddIntegrationModal();
-    }
+    await updateConnectedPlatforms(userId, updatedConnectedPlatforms);
+    setConnectedPlatforms(updatedConnectedPlatforms);
+    setIntegrations(prev => [...prev, ...newIntegrations]);
+    handleCloseAddIntegrationModal();
   };
 
   const handleRemovePlatform = async (platformName: string) => {
-    if (platformName === "TradingView") {
+    if (!userId || platformName === "TradingView") {
       console.log("TradingView cannot be removed as it's a default integration.");
       return;
     }
 
     const updatedConnectedPlatforms = connectedPlatforms.filter(name => name !== platformName);
     
-    // Update the database
-    const { error } = await supabase
-      .from('user_settings')
-      .update({ connected_platforms: updatedConnectedPlatforms })
-      .eq('user_id', userId);
-
-    if (error) {
-      console.error('Error updating connected platforms:', error);
-    } else {
-      setConnectedPlatforms(updatedConnectedPlatforms);
-      setIntegrations(prev => prev.filter(integration => integration.name !== platformName));
-    }
+    await updateConnectedPlatforms(userId, updatedConnectedPlatforms);
+    setConnectedPlatforms(updatedConnectedPlatforms);
+    setIntegrations(prev => prev.filter(integration => integration.name !== platformName));
   };
 
   const indexOfLastIntegration = currentPage * integrationsPerPage;
