@@ -87,7 +87,6 @@ document.addEventListener('DOMContentLoaded', function() {
       userIdInput.disabled = true;
       blockConfigSection.style.display = 'none';
       
-      // Remove any existing unblock button
       const existingUnblockButton = document.getElementById('unblockButton');
       if (existingUnblockButton) {
         existingUnblockButton.remove();
@@ -136,7 +135,6 @@ document.addEventListener('DOMContentLoaded', function() {
       connectedPlatforms = data.connected_platforms || ["TradingView"];
       updatePlatformList();
 
-      // Check if block is active and update UI accordingly
       const now = new Date();
       const endTime = new Date(data.block_end_time);
       const isBlocked = data.block_state === 'active' && endTime > now;
@@ -212,7 +210,6 @@ document.addEventListener('DOMContentLoaded', function() {
       totalBlocks += 1;
       console.log('Block activated, new state: active, end time:', endTime);
 
-      // Update local storage for extension
       const blockInfo = {
         action: "updateBlockState",
         isBlocked: true,
@@ -223,11 +220,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Block state saved to local storage');
       });
 
-      // Update UI to reflect active block
       statusElement.textContent = `Block active until ${endTime.toLocaleString()}`;
       blockConfigSection.style.display = 'none';
 
-      updateUIBasedOnBlockState(true);
+      updateUIBasedOnBlockState(true, isUnlockable);
 
     } catch (error) {
       console.error('Error activating block:', error);
@@ -251,7 +247,6 @@ document.addEventListener('DOMContentLoaded', function() {
       statusElement.textContent = 'Block deactivated';
       updateUIBasedOnBlockState(false, false);
 
-      // Update local storage
       const blockInfo = {
         action: "updateBlockState",
         isBlocked: false,
@@ -267,13 +262,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Add an event listener for changes in chrome.storage
   chrome.storage.onChanged.addListener(function(changes, namespace) {
     for (let key in changes) {
       if (key === 'tradeBlockerState') {
         const newValue = changes[key].newValue;
         if (newValue && newValue.isBlocked !== undefined) {
-          updateUIBasedOnBlockState(newValue.isBlocked);
+          updateUIBasedOnBlockState(newValue.isBlocked, isUnlockable);
         }
       }
     }
