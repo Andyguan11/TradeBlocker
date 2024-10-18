@@ -771,8 +771,11 @@ const IntergrationsContainer: React.FC = () => {
                           Unlockable Block
                         </label>
                       </div>
+                      {/* eslint-disable-next-line react/no-unescaped-entities */}
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {isUnlockable ? unlockableText : lockableText}
+                        {isUnlockable 
+                          ? "Unlockable: You can remove the block before the set duration ends."
+                          : "Lockable: Once set, the block cannot be removed until the duration ends."}
                       </p>
                     </div>
                     <div>
