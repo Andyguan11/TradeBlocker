@@ -385,10 +385,12 @@ const IntergrationsContainer: React.FC = () => {
           // Block is still active
           setLocalBlockState('active');
           updateBlockDuration(endTime);
+          notifyExtension(true);  // Add this line
         }
       }
     };
 
+    checkBlockStatus();  // Call immediately
     const timer = setInterval(checkBlockStatus, 60000); // Check every minute
 
     return () => clearInterval(timer);
