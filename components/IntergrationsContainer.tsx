@@ -3,10 +3,9 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { MoreVertical, Plus, Shield, X } from 'lucide-react'
+import { MoreVertical, Plus, X } from 'lucide-react'
 import { Poppins } from 'next/font/google'
 import { createClient } from '@supabase/supabase-js'
-import { Switch } from '@radix-ui/react-switch';
 import { Checkbox } from "@/components/ui/checkbox"
 import Image from 'next/image'
 
@@ -45,9 +44,7 @@ const IntergrationsContainer: React.FC = () => {
   const [lossLimit, setLossLimit] = useState('')
   const [profitLimit, setProfitLimit] = useState('')
   const [limitType, setLimitType] = useState<'percentage' | 'value'>('percentage')
-  const [showComingSoon, setShowComingSoon] = useState(false)
   const [showComingSoonIntegration, setShowComingSoonIntegration] = useState(false)
-  const [totalBlocks, setTotalBlocks] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
 
   // Add these new state variables
@@ -85,7 +82,7 @@ const IntergrationsContainer: React.FC = () => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('user_settings')
-      .select('block_state, block_end_time, is_unlockable, total_blocks, connected_platforms')
+      .select('block_state, block_end_time, is_unlockable, connected_platforms')
       .eq('user_id', userId)
       .single();
 
@@ -102,7 +99,6 @@ const IntergrationsContainer: React.FC = () => {
 
     if (data) {
       console.log('Fetched user settings:', data);
-      setTotalBlocks(data.total_blocks || 0);
       // Ensure TradingView is always included in connected platforms
       const platforms = data.connected_platforms || [];
       if (!platforms.includes("TradingView")) {
@@ -190,7 +186,6 @@ const IntergrationsContainer: React.FC = () => {
       .from('user_settings')
       .insert({ 
         user_id: userId, 
-        total_blocks: 0, 
         connected_platforms: ["TradingView"]
       })
       .select()
@@ -443,30 +438,6 @@ const IntergrationsContainer: React.FC = () => {
                       Coming Soon
                     </button>
                   </div>
-                </div>
-              </div>
-            )}
-
-            {/* Coming Soon Popup */}
-            {showComingSoon && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white p-6 rounded-lg shadow-xl w-80">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold">Coming Soon</h2>
-                    <button 
-                      onClick={() => setShowComingSoon(false)}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <p className="text-gray-600 mb-4">The "Block All Now" feature is not yet available. Stay tuned for updates!</p>
-                  <button
-                    onClick={() => setShowComingSoon(false)}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
-                  >
-                    Got it
-                  </button>
                 </div>
               </div>
             )}

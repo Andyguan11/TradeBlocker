@@ -142,6 +142,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ platforms: connectedPlatforms });
   } else if (request.action === "getBlockState") {
     sendResponse({ isBlocked: isBlocked });
+  } else if (request.action === "activateBlock") {
+    // Existing block activation logic
+    // ...
+
+    // After activating the block, refresh all tabs
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach((tab) => {
+        chrome.tabs.reload(tab.id);
+      });
+    });
+
+    sendResponse({ success: true });
   }
   return true; // Keeps the message channel open for asynchronous responses
 });
