@@ -1,52 +1,24 @@
 {
-  "manifest_version": 3,
-  "name": "TradeBlocker",
+  "manifest_version": 2,
+  "name": "Site Blocker",
   "version": "1.0",
-  "description": "Enforce Trading discipline",
+  "description": "Blocks specified sites based on user settings",
   "permissions": [
+    "tabs",
     "storage",
-    "declarativeNetRequest"
-  ],
-  "host_permissions": [
-    "*://*.tradingview.com/*",
-    "*://*.ninjatrader.com/*",
-    "*://*.tradovate.com/*",
-    "*://*.metatrader.app/*"
+    "<all_urls>"
   ],
   "background": {
-    "service_worker": "background.js"
+    "scripts": ["background.js"],
+    "persistent": false
   },
   "content_scripts": [
     {
-      "matches": [
-        "*://*.tradingview.com/*",
-        "*://*.ninjatrader.com/*",
-        "*://*.tradovate.com/*",
-        "*://*.metatrader.app/*"
-      ],
+      "matches": ["<all_urls>"],
       "js": ["content.js"]
     }
   ],
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "logo.png",
-      "48": "logo.png",
-      "128": "logo.png"
-    }
-  },
-  "icons": {
-    "16": "logo.png",
-    "48": "logo.png",
-    "128": "logo.png"
-  },
-  "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
-  },
-  "web_accessible_resources": [
-    {
-      "resources": ["supabase.js"],
-      "matches": ["<all_urls>"]
-    }
-  ]
+  "browser_action": {
+    "default_popup": "popup.html"
+  }
 }

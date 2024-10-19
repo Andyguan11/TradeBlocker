@@ -131,6 +131,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     blockedPlatforms = request.blockedPlatforms;
     updateBlockStatus();
     return true;
+  } else if (request.action === "updateBlockState") {
+    isBlocked = request.isBlocked;
+    
+    // Notify all tabs about the new block state
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach((tab) => {
+        chrome.tabs.sendMessage(tab.id, { action: "blockStateChanged", isBlocked: isBlocked });
+      });
+    });
+
+    sendResponse({ success: true });
+    return true; // Indicates that the response is sent asynchronously
+  } else if (request.action === "getBlockState") {
+    sendResponse({ isBlocked: isBlocked });
+    return true;
   }
   return true;
 });
@@ -211,3 +226,10 @@ function updateBlockStatus() {
     isBlocked = false;
   }
 }
+
+// Check if the current tab should be blocked
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && isBlocked) {
+    chrome.tabs.sendMessage(tabId, { action: "blockStateChanged", isBlocked: true });
+  }
+});

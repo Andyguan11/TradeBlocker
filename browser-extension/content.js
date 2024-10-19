@@ -113,3 +113,30 @@ window.addEventListener('storage', function(e) {
 });
 
 console.log('Content script loaded');
+
+function applyBlock() {
+  if (isBlocked) {
+    document.body.innerHTML = '<h1>This site is currently blocked.</h1>';
+    document.body.style.backgroundColor = '#f0f0f0';
+    document.body.style.color = '#333';
+    document.body.style.fontFamily = 'Arial, sans-serif';
+    document.body.style.textAlign = 'center';
+    document.body.style.paddingTop = '50px';
+  } else {
+    location.reload();
+  }
+}
+
+// Check initial block state when the content script loads
+chrome.runtime.sendMessage({ action: "getBlockState" }, (response) => {
+  isBlocked = response.isBlocked;
+  applyBlock();
+});
+
+// Listen for block state changes
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "blockStateChanged") {
+    isBlocked = request.isBlocked;
+    applyBlock();
+  }
+});
