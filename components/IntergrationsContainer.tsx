@@ -93,23 +93,33 @@ const IntergrationsContainer: React.FC = () => {
 
   // Add this function near the top of your component
   const notifyExtension = (isBlocked: boolean, endTime: string, blockedPlatforms: string[]) => {
-    try {
-      if (typeof window !== 'undefined' && 'chrome' in window && chrome.runtime) {
+    if (typeof window !== 'undefined') {
+      // Use localStorage as a fallback if chrome.runtime is not available
+      const message = JSON.stringify({
+        action: "updateBlockState",
+        isBlocked,
+        endTime,
+        blockedPlatforms
+      });
+      localStorage.setItem('tradeBlockerState', message);
+      
+      // Try to communicate with the extension if it's available
+      if ('chrome' in window && chrome.runtime && chrome.runtime.sendMessage) {
         chrome.runtime.sendMessage({
-          action: "updateBlockState", 
-          isBlocked, 
+          action: "updateBlockState",
+          isBlocked,
           endTime,
           blockedPlatforms
         }, (response) => {
           if (chrome.runtime.lastError) {
-            console.error('Error sending message to extension:', chrome.runtime.lastError);
+            console.log('Extension communication failed, using localStorage fallback');
           } else {
             console.log('Extension notified successfully:', response);
           }
         });
+      } else {
+        console.log('Extension not detected, using localStorage fallback');
       }
-    } catch (error) {
-      console.error('Error notifying extension:', error);
     }
   };
 

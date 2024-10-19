@@ -55,7 +55,7 @@ function removeFullPageBlock() {
 
 function updateBlockingState(shouldBlock) {
   isBlocked = shouldBlock;
-  if (isBlocked && isSetup) {
+  if (isBlocked) {
     if (window.location.hostname.includes('tradingview.com')) {
       applyTradingViewBlocking();
     } else {
@@ -65,8 +65,18 @@ function updateBlockingState(shouldBlock) {
     removeBlockingBehavior();
     removeFullPageBlock();
   }
-  console.log(`Blocking ${isBlocked && isSetup ? 'applied' : 'removed'}`);
+  console.log(`Blocking ${isBlocked ? 'applied' : 'removed'}`);
 }
+
+// Add this near the top of the file
+window.addEventListener('storage', function(e) {
+  if (e.key === 'tradeBlockerState') {
+    const state = JSON.parse(e.newValue);
+    if (state && state.action === "updateBlockState") {
+      updateBlockingState(state.isBlocked);
+    }
+  }
+});
 
 // Apply blocking immediately if the page is already loaded
 if (document.readyState === 'complete') {

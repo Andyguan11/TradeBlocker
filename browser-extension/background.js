@@ -82,12 +82,7 @@ async function updateExtensionConnectionStatus(userId, isConnected) {
 }
 
 function broadcastBlockState() {
-  chrome.tabs.query({url: [
-    '*://*.tradingview.com/*',
-    '*://*.ninjatrader.com/*',
-    '*://*.tradovate.com/*',
-    '*://*.metatrader.app/*'
-  ]}, (tabs) => {
+  chrome.tabs.query({}, (tabs) => {
     tabs.forEach(tab => {
       chrome.tabs.sendMessage(tab.id, { action: "updateBlockState", isBlocked });
     });
