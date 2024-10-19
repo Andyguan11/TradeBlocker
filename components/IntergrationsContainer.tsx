@@ -100,6 +100,12 @@ const IntergrationsContainer: React.FC = () => {
           isBlocked, 
           endTime,
           blockedPlatforms
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('Error sending message to extension:', chrome.runtime.lastError);
+          } else {
+            console.log('Extension notified successfully:', response);
+          }
         });
       }
     } catch (error) {

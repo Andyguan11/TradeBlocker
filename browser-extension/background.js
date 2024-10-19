@@ -130,6 +130,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     blockEndTime = new Date(request.endTime);
     blockedPlatforms = request.blockedPlatforms;
     updateBlockStatus();
+    
+    // Notify all content scripts
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach((tab) => {
+        chrome.tabs.sendMessage(tab.id, {
+          action: "updateContentScript",
+          isBlocked: isBlocked,
+          blockedPlatforms: blockedPlatforms
+        });
+      });
+    });
+
+    sendResponse({success: true});
     return true;
   }
   return true;
@@ -165,44 +178,15 @@ function updateBlockStatus() {
   if (isBlocked && new Date() < blockEndTime) {
     chrome.declarativeNetRequest.updateDynamicRules({
       removeRuleIds: [1, 2, 3, 4, 5],
-      addRules: [
-        {
-          id: 1,
-          priority: 1,
-          action: { type: "block" },
-          condition: {
-            urlFilter: "||tradingview.com",
-            resourceTypes: ["main_frame"]
-          }
-        },
-        {
-          id: 2,
-          priority: 1,
-          action: { type: "block" },
-          condition: {
-            urlFilter: "||web.ninjatrader.com",
-            resourceTypes: ["main_frame"]
-          }
-        },
-        {
-          id: 3,
-          priority: 1,
-          action: { type: "block" },
-          condition: {
-            urlFilter: "||trader.tradovate.com",
-            resourceTypes: ["main_frame"]
-          }
-        },
-        {
-          id: 4,
-          priority: 1,
-          action: { type: "block" },
-          condition: {
-            urlFilter: "||web.metatrader.app/terminal",
-            resourceTypes: ["main_frame"]
-          }
+      addRules: blockedPlatforms.map((platform, index) => ({
+        id: index + 1,
+        priority: 1,
+        action: { type: "block" },
+        condition: {
+          urlFilter: `||${platform.toLowerCase()}.com`,
+          resourceTypes: ["main_frame"]
         }
-      ].filter(rule => blockedPlatforms.some(platform => rule.condition.urlFilter.includes(platform.toLowerCase())))
+      }))
     });
   } else {
     chrome.declarativeNetRequest.updateDynamicRules({
