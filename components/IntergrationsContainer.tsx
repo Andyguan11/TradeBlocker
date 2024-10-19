@@ -95,7 +95,13 @@ const IntergrationsContainer: React.FC = () => {
   const notifyExtension = (isBlocked: boolean) => {
     try {
       if (typeof window !== 'undefined' && 'chrome' in window && chrome.runtime) {
-        chrome.runtime.sendMessage({action: "updateBlockState", isBlocked: isBlocked});
+        chrome.runtime.sendMessage({action: "updateBlockState", isBlocked: isBlocked}, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('Error notifying extension:', chrome.runtime.lastError);
+          } else if (response && response.success) {
+            console.log('Extension notified successfully');
+          }
+        });
       }
     } catch (error) {
       console.error('Error notifying extension:', error);
