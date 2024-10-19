@@ -24,7 +24,7 @@ const PrivacyPolicy: React.FC = () => {
                 1. Introduction
               </Typography>
               <Typography paragraph>
-                ChartBlocker ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our ChartBlocker application and related services (collectively, the "Service").
+                ChartBlocker (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our ChartBlocker application and related services (collectively, the &quot;Service&quot;).
               </Typography>
 
               <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 4 }}>
