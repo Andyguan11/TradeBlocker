@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
       connectedPlatforms = ["TradingView"];
       updatePlatformList();
     } catch (error) {
-      console.error('Error creating user settings:', error);
+      console.error('Error creating user settings:', error.message, error.details);
     }
   }
 

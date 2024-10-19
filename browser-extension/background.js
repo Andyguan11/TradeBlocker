@@ -1,3 +1,6 @@
+importScripts('supabase.js');
+const { createClient } = supabase;
+
 const SUPABASE_URL = 'https://piyqyopfzdrtnhjaapvu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpeXF5b3BmemRydG5oamFhcHZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjcyOTkxMzQsImV4cCI6MjA0Mjg3NTEzNH0.6rxtaB3yu9jM_9Si6E265D82mXUSPfB_iKXmdhkMM7c';
 const CHECK_INTERVAL = 3000; // Check every 3 seconds
