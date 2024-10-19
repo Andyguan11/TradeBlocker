@@ -1,6 +1,6 @@
 {
   "manifest_version": 2,
-  "name": "Site Blocker",
+  "name": "TradeBlocker",
   "version": "1.0",
   "description": "Blocks specified sites based on user settings",
   "permissions": [
@@ -19,6 +19,11 @@
     }
   ],
   "browser_action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": "logo.png"
+  },
+  "icons": {
+    "48": "logo.png",
+    "128": "logo.png"
   }
 }
