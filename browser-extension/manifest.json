@@ -5,7 +5,8 @@
   "description": "Enforce Trading discipline",
   "permissions": [
     "storage",
-    "declarativeNetRequest"
+    "declarativeNetRequest",
+    "tabs"
   ],
   "host_permissions": [
     "*://*.tradingview.com/*",

@@ -7,6 +7,7 @@ let userId = null;
 let isSetup = false;
 let blockEndTime = null;
 let blockedPlatforms = [];
+let connectedPlatforms = ["TradingView"]; // Default platform
 
 async function checkBlockStatus(userId) {
   try {
@@ -83,13 +84,15 @@ async function updateExtensionConnectionStatus(userId, isConnected) {
 
 function broadcastBlockState() {
   chrome.tabs.query({url: [
-    '*://*.tradingview.com/*',
-    '*://*.ninjatrader.com/*',
-    '*://*.tradovate.com/*',
-    '*://*.metatrader.app/*'
+    "https://*.tradingview.com/*",
+    // Add other URLs as needed
   ]}, (tabs) => {
     tabs.forEach(tab => {
-      chrome.tabs.sendMessage(tab.id, { action: "updateBlockState", isBlocked });
+      try {
+        chrome.tabs.sendMessage(tab.id, { action: "updateBlockState", isBlocked: isBlocked });
+      } catch (error) {
+        console.error('Error sending message to tab:', tab.id, error);
+      }
     });
   });
 }
@@ -131,8 +134,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     blockedPlatforms = request.blockedPlatforms;
     updateBlockStatus();
     return true;
+  } else if (request.action === "updateConnectedPlatforms") {
+    connectedPlatforms = request.platforms;
+    chrome.storage.local.set({ connectedPlatforms: connectedPlatforms });
+    sendResponse({ success: true });
+  } else if (request.action === "getConnectedPlatforms") {
+    sendResponse({ platforms: connectedPlatforms });
+  } else if (request.action === "getBlockState") {
+    sendResponse({ isBlocked: isBlocked });
+  } else if (request.action === "activateBlock") {
+    // Existing block activation logic
+    // ...
+
+    // After activating the block, refresh all tabs
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach((tab) => {
+        chrome.tabs.reload(tab.id);
+      });
+    });
+
+    sendResponse({ success: true });
   }
-  return true;
+  return true; // Keeps the message channel open for asynchronous responses
 });
 
 setInterval(updateBlockState, CHECK_INTERVAL);
@@ -211,3 +234,13 @@ function updateBlockStatus() {
     isBlocked = false;
   }
 }
+
+// Sync state with storage on startup
+chrome.storage.local.get(['isBlocked', 'connectedPlatforms'], (result) => {
+  if (result.isBlocked !== undefined) {
+    isBlocked = result.isBlocked;
+  }
+  if (result.connectedPlatforms) {
+    connectedPlatforms = result.connectedPlatforms;
+  }
+});
