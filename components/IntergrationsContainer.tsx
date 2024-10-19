@@ -92,10 +92,15 @@ const IntergrationsContainer: React.FC = () => {
   const [localBlockState, setLocalBlockState] = useState<'active' | 'inactive'>('inactive');
 
   // Add this function near the top of your component
-  const notifyExtension = (isBlocked: boolean) => {
+  const notifyExtension = (isBlocked: boolean, endTime: string, blockedPlatforms: string[]) => {
     try {
       if (typeof window !== 'undefined' && 'chrome' in window && chrome.runtime) {
-        chrome.runtime.sendMessage({action: "updateBlockState", isBlocked: isBlocked});
+        chrome.runtime.sendMessage({
+          action: "updateBlockState", 
+          isBlocked, 
+          endTime,
+          blockedPlatforms
+        });
       }
     } catch (error) {
       console.error('Error notifying extension:', error);
@@ -282,8 +287,10 @@ const IntergrationsContainer: React.FC = () => {
       is_unlockable: isUnlockable,
     });
     setTotalBlocks(prevTotalBlocks => prevTotalBlocks + 1);
-    updateBlockDuration(endTime);
     setShowBlockConfirmation(false);
+
+    // Notify extension immediately
+    notifyExtension(true, endTime.toISOString(), connectedPlatforms);
 
     try {
       // Update Supabase
@@ -301,7 +308,8 @@ const IntergrationsContainer: React.FC = () => {
       if (error) throw error;
 
       console.log('Block activated, new state:', 'active', 'end time:', endTime);
-      notifyExtension(true);  // Notify the extension
+      // Remove this line as we've already notified the extension
+      // notifyExtension(true);
     } catch (error) {
       console.error('Error activating block:', error);
       // Revert local state if server update fails
@@ -309,6 +317,8 @@ const IntergrationsContainer: React.FC = () => {
       setActiveBlock(null);
       setTotalBlocks(prevTotalBlocks => prevTotalBlocks - 1);
       setBlockDuration({ days: '', hours: '', minutes: '' });
+      // Notify extension of the failure
+      notifyExtension(false, new Date().toISOString(), connectedPlatforms);
     }
   };
 
@@ -332,13 +342,15 @@ const IntergrationsContainer: React.FC = () => {
       if (error) throw error;
 
       console.log('Block deactivated');
-      notifyExtension(false);  // Notify the extension
+      notifyExtension(false, new Date().toISOString(), connectedPlatforms);
     } catch (error) {
       console.error('Error removing block:', error);
       // Revert local state if server update fails
       setLocalBlockState('active');
       setActiveBlock(activeBlock);
       updateBlockDuration(new Date(activeBlock.end_time));
+      // Notify extension of the failure to unblock
+      notifyExtension(true, activeBlock.end_time, connectedPlatforms);
     }
   };
 
@@ -380,12 +392,12 @@ const IntergrationsContainer: React.FC = () => {
           if (error) {
             console.error('Error updating block state in database:', error);
           }
-          notifyExtension(false);
+          notifyExtension(false, now.toISOString(), connectedPlatforms);
         } else {
           // Block is still active
           setLocalBlockState('active');
           updateBlockDuration(endTime);
-          notifyExtension(true);  // Add this line
+          notifyExtension(true, endTime.toISOString(), connectedPlatforms);
         }
       }
     };
@@ -394,7 +406,7 @@ const IntergrationsContainer: React.FC = () => {
     const timer = setInterval(checkBlockStatus, 60000); // Check every minute
 
     return () => clearInterval(timer);
-  }, [userId, activeBlock]);
+  }, [userId, activeBlock, connectedPlatforms]);
 
   const handleAddIntegration = () => {
     setShowAddIntegrationModal(true);
