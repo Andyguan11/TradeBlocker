@@ -240,6 +240,15 @@ const IntergrationsContainer: React.FC = () => {
     await updateConnectedPlatforms(userId, updatedConnectedPlatforms);
     setConnectedPlatforms(updatedConnectedPlatforms);
     setIntegrations(prev => [...prev, ...newIntegrations]);
+
+    // Update extension
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage({ 
+        action: "updateConnectedPlatforms", 
+        platforms: updatedConnectedPlatforms 
+      });
+    }
+
     handleCloseAddIntegrationModal();
   };
 
@@ -261,6 +270,28 @@ const IntergrationsContainer: React.FC = () => {
   const currentIntegrations = integrations.slice(indexOfFirstIntegration, indexOfLastIntegration);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  const checkExtensionConnection = () => {
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage({ action: "getBlockState" }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.log("Extension not connected");
+          // Handle case when extension is not connected
+        } else {
+          console.log("Extension connected, block state:", response.isBlocked);
+          // Handle connected state
+        }
+      });
+    } else {
+      console.log("Chrome extension API not available");
+      // Handle case when not in a Chrome extension context
+    }
+  };
+
+  useEffect(() => {
+    checkExtensionConnection();
+    // ... rest of your initialization logic
+  }, []);
 
   return (
     <div className={`w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${poppins.className}`}>
