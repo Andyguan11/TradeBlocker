@@ -122,8 +122,6 @@ function applyBlock() {
     document.body.style.fontFamily = 'Arial, sans-serif';
     document.body.style.textAlign = 'center';
     document.body.style.paddingTop = '50px';
-  } else {
-    location.reload();
   }
 }
 
@@ -137,6 +135,10 @@ chrome.runtime.sendMessage({ action: "getBlockState" }, (response) => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "blockStateChanged") {
     isBlocked = request.isBlocked;
-    applyBlock();
+    if (isBlocked) {
+      applyBlock();
+    } else {
+      location.reload(); // Only reload when unblocking
+    }
   }
 });
