@@ -22,6 +22,19 @@ document.addEventListener('DOMContentLoaded', function() {
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpeXF5b3BmemRydG5oamFhcHZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjcyOTkxMzQsImV4cCI6MjA0Mjg3NTEzNH0.6rxtaB3yu9jM_9Si6E265D82mXUSPfB_iKXmdhkMM7c';
   const { createClient } = supabase;
   const supabaseClient = createClient(supabaseUrl, supabaseKey);
+  console.log('Supabase client initialized:', supabaseClient);
+
+  async function testSupabaseConnection() {
+    try {
+      const { data, error } = await supabaseClient.from('user_settings').select('count').limit(1);
+      if (error) throw error;
+      console.log('Supabase connection test successful:', data);
+      return true;
+    } catch (error) {
+      console.error('Supabase connection test failed:', error);
+      return false;
+    }
+  }
 
   // Check if user ID is already set
   chrome.storage.sync.get(['userId'], function(result) {
@@ -34,15 +47,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  saveButton.addEventListener('click', function() {
+  saveButton.addEventListener('click', async function() {
     const newUserId = userIdInput.value.trim();
     if (newUserId) {
-      chrome.storage.sync.set({userId: newUserId}, function() {
+      statusElement.textContent = 'Saving User ID...';
+      try {
+        await chrome.storage.sync.set({userId: newUserId});
         userId = newUserId;
+        statusElement.textContent = 'User ID set. Creating settings...';
+        await createUserSettings(userId);
         statusElement.textContent = 'User ID set. Blocking ready.';
         blockConfigSection.style.display = 'block';
-        createUserSettings(userId);
-      });
+      } catch (error) {
+        console.error('Error in save process:', error);
+        statusElement.textContent = `Error: ${error.message || 'Unknown error'}`;
+      }
     } else {
       statusElement.textContent = 'Please enter a valid User ID.';
       blockConfigSection.style.display = 'none';
@@ -152,6 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   async function createUserSettings(userId) {
     try {
+      console.log('Attempting to create user settings for userId:', userId);
       const { data, error } = await supabaseClient
         .from('user_settings')
         .insert({ 
@@ -162,13 +182,17 @@ document.addEventListener('DOMContentLoaded', function() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw new Error(error.message || 'Unknown Supabase error');
+      }
 
       console.log('Created user settings:', data);
       connectedPlatforms = ["TradingView"];
       updatePlatformList();
     } catch (error) {
       console.error('Error creating user settings:', error);
+      statusElement.textContent = `Error: ${error.message}`;
     }
   }
 
@@ -319,6 +343,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 60000); // Sync every minute
   }
 
-  // Call this function when the popup is loaded
+  // Call this function when the popup loads
   startServerSync();
+
+  // Call this function when the popup loads
+  testSupabaseConnection();
 });
