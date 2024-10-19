@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../utils/supabaseClient'
 import { Inter } from 'next/font/google'
 import React from 'react';
+import Link from 'next/link';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -214,9 +215,9 @@ export default function AuthPage() {
 
           <p className="text-center text-xs text-gray-500 mt-4">
             By signing {isLogin ? 'in' : 'up'}, you agree to our{' '}
-            <a href="/terms" className="underline hover:text-gray-700">Terms of Service</a>{' '}
+            <Link href="/terms">Terms of Service</Link>{' '}
             and{' '}
-            <a href="/privacy-policy" className="underline hover:text-gray-700">Privacy Policy</a>
+            <Link href="/privacy-policy">Privacy Policy</Link>
           </p>
         </div>
         
