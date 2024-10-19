@@ -111,6 +111,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       isSetup = true;
       await updateBlockState();
       await updateExtensionConnectionStatus(userId, true);
+      
+      // Notify the web app that the extension is set up
+      chrome.tabs.query({url: '*://your-webapp-domain.com/*'}, function(tabs) {
+        if (tabs.length > 0) {
+          chrome.tabs.sendMessage(tabs[0].id, {action: "extensionSetupComplete", userId: userId});
+        }
+      });
+      
       sendResponse({ success: true });
     });
     return true;

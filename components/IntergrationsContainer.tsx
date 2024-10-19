@@ -91,35 +91,34 @@ const IntergrationsContainer: React.FC = () => {
 
   const [localBlockState, setLocalBlockState] = useState<'active' | 'inactive'>('inactive');
 
+  // Add this new state variable
+  const [isExtensionInstalled, setIsExtensionInstalled] = useState<boolean | null>(null);
+
   // Add this function near the top of your component
   const notifyExtension = (isBlocked: boolean, endTime: string, blockedPlatforms: string[]) => {
-    if (typeof window !== 'undefined') {
-      // Use localStorage as a fallback if chrome.runtime is not available
-      const message = JSON.stringify({
+    const message = JSON.stringify({
+      action: "updateBlockState",
+      isBlocked,
+      endTime,
+      blockedPlatforms
+    });
+    localStorage.setItem('tradeBlockerState', message);
+    
+    if (typeof window !== 'undefined' && 'chrome' in window && chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage({
         action: "updateBlockState",
         isBlocked,
         endTime,
         blockedPlatforms
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.log('Extension communication failed, using localStorage fallback');
+        } else {
+          console.log('Extension notified successfully:', response);
+        }
       });
-      localStorage.setItem('tradeBlockerState', message);
-      
-      // Try to communicate with the extension if it's available
-      if ('chrome' in window && chrome.runtime && chrome.runtime.sendMessage) {
-        chrome.runtime.sendMessage({
-          action: "updateBlockState",
-          isBlocked,
-          endTime,
-          blockedPlatforms
-        }, (response) => {
-          if (chrome.runtime.lastError) {
-            console.log('Extension communication failed, using localStorage fallback');
-          } else {
-            console.log('Extension notified successfully:', response);
-          }
-        });
-      } else {
-        console.log('Extension not detected, using localStorage fallback');
-      }
+    } else {
+      console.log('Extension not detected, using localStorage fallback');
     }
   };
 
@@ -480,6 +479,50 @@ const IntergrationsContainer: React.FC = () => {
   const currentIntegrations = integrations.slice(indexOfFirstIntegration, indexOfLastIntegration);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  const checkExtensionInstallation = useCallback(() => {
+    if (typeof window !== 'undefined' && 'chrome' in window && chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage({ action: "checkExtensionInstallation" }, (response) => {
+        if (chrome.runtime.lastError) {
+          setIsExtensionInstalled(false);
+        } else {
+          setIsExtensionInstalled(true);
+        }
+      });
+    } else {
+      setIsExtensionInstalled(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkExtensionInstallation();
+    const checkInterval = setInterval(checkExtensionInstallation, 5000); // Check every 5 seconds
+    return () => clearInterval(checkInterval);
+  }, [checkExtensionInstallation]);
+
+  useEffect(() => {
+    const handleExtensionSetup = (event: MessageEvent) => {
+      if (event.data && event.data.action === "extensionSetupComplete") {
+        setIsExtensionInstalled(true);
+        // You might want to refresh user settings or perform other actions here
+        fetchUserSettings(event.data.userId);
+      }
+    };
+
+    window.addEventListener("message", handleExtensionSetup);
+
+    return () => {
+      window.removeEventListener("message", handleExtensionSetup);
+    };
+  }, [fetchUserSettings]);
+
+  const ExtensionWarning = () => (
+    <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4" role="alert">
+      <p className="font-bold">Extension Not Detected</p>
+      <p>The TradeBlocker extension is not installed or not working properly. Some features may be limited.</p>
+      <a href="YOUR_EXTENSION_STORE_LINK" target="_blank" rel="noopener noreferrer" className="underline">Install Extension</a>
+    </div>
+  );
 
   return (
     <div className={`w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${poppins.className}`}>
@@ -890,6 +933,7 @@ const IntergrationsContainer: React.FC = () => {
           </div>
         </>
       )}
+      {!isExtensionInstalled && <ExtensionWarning />}
     </div>
   )
 }

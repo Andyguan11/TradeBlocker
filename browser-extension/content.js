@@ -117,6 +117,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     blockedPlatforms = request.blockedPlatforms;
     applyBlock();
   }
+  if (request.action === "extensionSetupComplete") {
+    window.postMessage({ action: "extensionSetupComplete", userId: request.userId }, "*");
+  }
 });
 
 // Listen for changes in localStorage
