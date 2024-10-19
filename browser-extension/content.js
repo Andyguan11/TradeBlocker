@@ -1,5 +1,4 @@
 let isBlocked = false;
-let isSetup = false;
 
 // TradingView-specific elements to block
 const tradingViewBlockedElements = [
@@ -8,11 +7,31 @@ const tradingViewBlockedElements = [
   "div.menu-Tx5xMZww.context-menu.menuWrap-Kq3ruQo8"
 ];
 
-// Create a style element
-const styleElement = document.createElement('style');
-document.head.appendChild(styleElement);
+let styleElement;
+
+function ensureStyleElement() {
+  if (!styleElement) {
+    styleElement = document.createElement('style');
+    if (document.head) {
+      document.head.appendChild(styleElement);
+    } else {
+      // If document.head is not available, wait for it
+      const observer = new MutationObserver(() => {
+        if (document.head) {
+          document.head.appendChild(styleElement);
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.documentElement, { childList: true });
+    }
+  }
+}
+
+// Call this function before using styleElement
+ensureStyleElement();
 
 function applyTradingViewBlocking() {
+  ensureStyleElement();
   const cssRules = tradingViewBlockedElements.map(selector => `${selector} { display: none !important; }`).join('\n');
   styleElement.textContent = cssRules;
 }
@@ -55,7 +74,7 @@ function removeFullPageBlock() {
 
 function updateBlockingState(shouldBlock) {
   isBlocked = shouldBlock;
-  if (isBlocked && isSetup) {
+  if (isBlocked) {
     if (window.location.hostname.includes('tradingview.com')) {
       applyTradingViewBlocking();
     } else {
@@ -65,51 +84,33 @@ function updateBlockingState(shouldBlock) {
     removeBlockingBehavior();
     removeFullPageBlock();
   }
-  console.log(`Blocking ${isBlocked && isSetup ? 'applied' : 'removed'}`);
+  console.log(`Blocking ${isBlocked ? 'applied' : 'removed'}`);
 }
 
-// Apply blocking immediately if the page is already loaded
-if (document.readyState === 'complete') {
-  updateBlockingState(isBlocked);
-} else {
-  window.addEventListener('load', () => updateBlockingState(isBlocked));
-}
-
-// Request initial block state from background script
-chrome.runtime.sendMessage({ action: "getInitialBlockState" }, (response) => {
-  if (response) {
-    isSetup = response.isSetup;
-    updateBlockingState(response.isBlocked);
-  }
-});
-
-// Set up a MutationObserver for TradingView
-if (window.location.hostname.includes('tradingview.com')) {
-  const observer = new MutationObserver(() => {
-    if (isBlocked) {
-      applyTradingViewBlocking();
+function checkAndApplyBlock() {
+  chrome.runtime.sendMessage({ action: "getInitialBlockState" }, (response) => {
+    if (response) {
+      updateBlockingState(response.isBlocked);
     }
   });
-  observer.observe(document.body, { childList: true, subtree: true });
 }
 
+// Check block status immediately when the script loads
+checkAndApplyBlock();
+
+// Recheck block status when the page finishes loading
+window.addEventListener('load', checkAndApplyBlock);
+
+// Listen for messages from the background script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "updateBlockState") {
-    isSetup = true;
     updateBlockingState(request.isBlocked);
     console.log('Received updateBlockState message:', request.isBlocked);
     sendResponse({success: true});
   }
 });
 
-// Listen for changes in localStorage
-window.addEventListener('storage', function(e) {
-  if (e.key === 'tradeBlockerState') {
-    const state = JSON.parse(e.newValue);
-    if (state && state.action === "updateBlockState") {
-      updateBlockingState(state.isBlocked);
-    }
-  }
-});
+// Periodically check block status
+setInterval(checkAndApplyBlock, 30000);
 
 console.log('Content script loaded');

@@ -5,14 +5,10 @@
   "description": "Enforce Trading discipline",
   "permissions": [
     "storage",
-    "declarativeNetRequest",
     "tabs"
   ],
   "host_permissions": [
-    "*://*.tradingview.com/*",
-    "*://*.ninjatrader.com/*",
-    "*://*.tradovate.com/*",
-    "*://*.metatrader.app/*"
+    "https://piyqyopfzdrtnhjaapvu.supabase.co/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -25,7 +21,8 @@
         "*://*.tradovate.com/*",
         "*://*.metatrader.app/*"
       ],
-      "js": ["content.js"]
+      "js": ["content.js"],
+      "run_at": "document_start"
     }
   ],
   "action": {
