@@ -216,7 +216,7 @@ export default function AuthPage() {
             By signing {isLogin ? 'in' : 'up'}, you agree to our{' '}
             <a href="/terms" className="underline hover:text-gray-700">Terms of Service</a>{' '}
             and{' '}
-            <a href="/privacy" className="underline hover:text-gray-700">Privacy Policy</a>
+            <a href="/privacy-policy" className="underline hover:text-gray-700">Privacy Policy</a>
           </p>
         </div>
         
