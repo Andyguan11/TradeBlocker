@@ -8,6 +8,17 @@ let isSetup = false;
 let blockEndTime = null;
 let blockedPlatforms = [];
 
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+supabase
+  .channel('user_settings')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'user_settings' }, handleSettingsChange)
+  .subscribe();
+
+function handleSettingsChange(payload) {
+  // Update extension state and notify content scripts
+}
+
 async function checkBlockStatus(userId) {
   try {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/user_settings?user_id=eq.${userId}&select=block_state,block_end_time`, {
@@ -211,3 +222,10 @@ function updateBlockStatus() {
     isBlocked = false;
   }
 }
+
+chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+  if (message.action === "updateBlockState") {
+    updateBlockState(message.isBlocked, message.endTime);
+    notifyAllTabs(message.isBlocked);
+  }
+});

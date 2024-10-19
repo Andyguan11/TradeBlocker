@@ -302,6 +302,14 @@ const IntergrationsContainer: React.FC = () => {
 
       console.log('Block activated, new state:', 'active', 'end time:', endTime);
       notifyExtension(true);  // Notify the extension
+
+      // Notify extension immediately
+      chrome.runtime.sendMessage({
+        action: "updateBlockState",
+        isBlocked: true,
+        endTime: endTime.toISOString(),
+        blockedPlatforms: connectedPlatforms
+      });
     } catch (error) {
       console.error('Error activating block:', error);
       // Revert local state if server update fails

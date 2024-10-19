@@ -113,3 +113,17 @@ window.addEventListener('storage', function(e) {
 });
 
 console.log('Content script loaded');
+
+function applyBlockingBehavior() {
+  if (isTradeActionElement(element)) {
+    element.disabled = true;
+    element.style.opacity = '0.5';
+    element.addEventListener('click', preventTradeAction);
+  }
+}
+
+function preventTradeAction(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  showBlockingNotification();
+}
