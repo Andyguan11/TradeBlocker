@@ -41,20 +41,12 @@ interface AvailablePlatform {
 const IntergrationsContainer: React.FC = () => {
   const [filter, setFilter] = useState('all')
   const [isAddHovered, setIsAddHovered] = useState(false)
-  const [showBlockPopup, setShowBlockPopup] = useState(false)
   const [showSettingsPopup, setShowSettingsPopup] = useState(false)
   const [lossLimit, setLossLimit] = useState('')
   const [profitLimit, setProfitLimit] = useState('')
   const [limitType, setLimitType] = useState<'percentage' | 'value'>('percentage')
   const [showComingSoon, setShowComingSoon] = useState(false)
   const [showComingSoonIntegration, setShowComingSoonIntegration] = useState(false)
-  const [blockDuration, setBlockDuration] = useState({ days: '', hours: '', minutes: '' });
-  const [isUnlockable, setIsUnlockable] = useState(false);
-  const [showBlockConfirmation, setShowBlockConfirmation] = useState(false);
-  const [activeBlock, setActiveBlock] = useState<null | {
-    end_time: string;
-    is_unlockable: boolean;
-  }>(null);
   const [totalBlocks, setTotalBlocks] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -89,19 +81,6 @@ const IntergrationsContainer: React.FC = () => {
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(["TradingView"]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [localBlockState, setLocalBlockState] = useState<'active' | 'inactive'>('inactive');
-
-  // Add this function near the top of your component
-  const notifyExtension = (isBlocked: boolean) => {
-    try {
-      if (typeof window !== 'undefined' && 'chrome' in window && chrome.runtime) {
-        chrome.runtime.sendMessage({action: "updateBlockState", isBlocked: isBlocked});
-      }
-    } catch (error) {
-      console.error('Error notifying extension:', error);
-    }
-  };
-
   const fetchUserSettings = useCallback(async (userId: string) => {
     setIsLoading(true);
     const { data, error } = await supabase
@@ -124,7 +103,6 @@ const IntergrationsContainer: React.FC = () => {
     if (data) {
       console.log('Fetched user settings:', data);
       setTotalBlocks(data.total_blocks || 0);
-      setLocalBlockState(data.block_state || 'inactive');
       // Ensure TradingView is always included in connected platforms
       const platforms = data.connected_platforms || [];
       if (!platforms.includes("TradingView")) {
@@ -143,21 +121,6 @@ const IntergrationsContainer: React.FC = () => {
         };
       });
       setIntegrations(updatedIntegrations);
-
-      const now = new Date();
-      const endTime = new Date(data.block_end_time);
-      if (endTime > now && data.block_state === 'active') {
-        setActiveBlock({
-          end_time: data.block_end_time,
-          is_unlockable: data.is_unlockable
-        });
-        updateBlockDuration(endTime);
-        console.log('Block is active, end time:', endTime);
-      } else {
-        setActiveBlock(null);
-        setBlockDuration({ days: '', hours: '', minutes: '' });
-        console.log('Block is inactive');
-      }
     }
     setIsLoading(false);
   }, [availablePlatforms]);  // Add availablePlatforms to the dependency array
@@ -242,160 +205,6 @@ const IntergrationsContainer: React.FC = () => {
     setIsLoading(false);
   };
 
-  const updateBlockDuration = (endTime: Date) => {
-    const remainingTime = endTime.getTime() - new Date().getTime();
-    setBlockDuration({
-      days: Math.floor(remainingTime / (1000 * 60 * 60 * 24)).toString(),
-      hours: Math.floor((remainingTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)).toString(),
-      minutes: Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60)).toString(),
-    });
-  };
-
-  const isDurationSet = () => {
-    return (
-      (blockDuration.days && parseInt(blockDuration.days) > 0) ||
-      (blockDuration.hours && parseInt(blockDuration.hours) > 0) ||
-      (blockDuration.minutes && parseInt(blockDuration.minutes) > 0)
-    );
-  };
-
-  const handleBlockActivation = async () => {
-    if (!isDurationSet()) {
-      alert("Please set a duration for the block.");
-      return;
-    }
-
-    if (!userId) {
-      console.error('No user logged in');
-      return;
-    }
-
-    const endTime = new Date();
-    endTime.setDate(endTime.getDate() + (parseInt(blockDuration.days) || 0));
-    endTime.setHours(endTime.getHours() + (parseInt(blockDuration.hours) || 0));
-    endTime.setMinutes(endTime.getMinutes() + (parseInt(blockDuration.minutes) || 0));
-
-    // Optimistically update local state
-    setLocalBlockState('active');
-    setActiveBlock({
-      end_time: endTime.toISOString(),
-      is_unlockable: isUnlockable,
-    });
-    setTotalBlocks(prevTotalBlocks => prevTotalBlocks + 1);
-    updateBlockDuration(endTime);
-    setShowBlockConfirmation(false);
-
-    try {
-      // Update Supabase
-      const { error } = await supabase
-        .from('user_settings')
-        .update({
-          block_state: 'active',
-          block_end_time: endTime.toISOString(),
-          is_unlockable: isUnlockable,
-          total_blocks: totalBlocks + 1
-        })
-        .eq('user_id', userId)
-        .single();
-
-      if (error) throw error;
-
-      console.log('Block activated, new state:', 'active', 'end time:', endTime);
-      notifyExtension(true);  // Notify the extension
-    } catch (error) {
-      console.error('Error activating block:', error);
-      // Revert local state if server update fails
-      setLocalBlockState('inactive');
-      setActiveBlock(null);
-      setTotalBlocks(prevTotalBlocks => prevTotalBlocks - 1);
-      setBlockDuration({ days: '', hours: '', minutes: '' });
-    }
-  };
-
-  const handleUnblock = async () => {
-    if (!userId || !activeBlock) return;
-
-    // Optimistically update local state
-    setLocalBlockState('inactive');
-    setActiveBlock(null);
-    setBlockDuration({ days: '', hours: '', minutes: '' });
-
-    try {
-      const { error } = await supabase
-        .from('user_settings')
-        .update({ 
-          block_state: 'inactive',
-          block_end_time: new Date().toISOString() 
-        })
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
-      console.log('Block deactivated');
-      notifyExtension(false);  // Notify the extension
-    } catch (error) {
-      console.error('Error removing block:', error);
-      // Revert local state if server update fails
-      setLocalBlockState('active');
-      setActiveBlock(activeBlock);
-      updateBlockDuration(new Date(activeBlock.end_time));
-    }
-  };
-
-  const formatBlockDuration = (duration: { days: string, hours: string, minutes: string }) => {
-    const parts = [];
-    if (duration.days && parseInt(duration.days) > 0) {
-      parts.push(`${duration.days}d`);
-    }
-    if (duration.hours && parseInt(duration.hours) > 0) {
-      parts.push(`${duration.hours}h`);
-    }
-    if (duration.minutes && parseInt(duration.minutes) > 0) {
-      parts.push(`${duration.minutes}m`);
-    }
-    return parts.length > 0 ? parts.join(' ') : 'Less than a minute';
-  };
-
-  useEffect(() => {
-    const checkBlockStatus = async () => {
-      if (userId && activeBlock) {
-        const now = new Date();
-        const endTime = new Date(activeBlock.end_time);
-        if (endTime <= now) {
-          // Block has expired
-          setActiveBlock(null);
-          setLocalBlockState('inactive');
-          setBlockDuration({ days: '', hours: '', minutes: '' });
-          console.log('Block expired, new state:', 'inactive');
-
-          // Update the database
-          const { error } = await supabase
-            .from('user_settings')
-            .update({ 
-              block_state: 'inactive',
-              block_end_time: now.toISOString() 
-            })
-            .eq('user_id', userId);
-
-          if (error) {
-            console.error('Error updating block state in database:', error);
-          }
-          notifyExtension(false);
-        } else {
-          // Block is still active
-          setLocalBlockState('active');
-          updateBlockDuration(endTime);
-          notifyExtension(true);  // Add this line
-        }
-      }
-    };
-
-    checkBlockStatus();  // Call immediately
-    const timer = setInterval(checkBlockStatus, 60000); // Check every minute
-
-    return () => clearInterval(timer);
-  }, [userId, activeBlock]);
-
   const handleAddIntegration = () => {
     setShowAddIntegrationModal(true);
   };
@@ -461,40 +270,9 @@ const IntergrationsContainer: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* Block now banner */}
-          <div className="bg-gradient-to-b from-red-50 to-white dark:from-red-900 dark:to-gray-800 p-3 flex flex-col items-center justify-center">
-            {localBlockState === 'inactive' ? (
-              <div 
-                className="flex items-center space-x-2 cursor-pointer mb-2"
-                onClick={() => setShowBlockConfirmation(true)}
-              >
-                <Shield className="w-5 h-5 text-red-500 dark:text-red-400" />
-                <span className="text-sm font-medium text-red-700 dark:text-red-300">Block All Now</span>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center">
-                <div className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                  Block active for: {formatBlockDuration(blockDuration)}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-300">
-                  Total blocks: {totalBlocks}
-                </div>
-                {activeBlock?.is_unlockable && (
-                  <button
-                    onClick={handleUnblock}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200 mt-2"
-                  >
-                    Unblock
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
           <div className="p-6 dark:text-white">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">Brokerages & Triggers</h1>
-              {/* Remove the search bar and filter icon */}
             </div>
 
             <div className="flex justify-between items-center mb-6">
@@ -638,33 +416,6 @@ const IntergrationsContainer: React.FC = () => {
               </div>
             )}
 
-            {/* Block Popup */}
-            {showBlockPopup && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white p-6 rounded-lg shadow-xl">
-                  <h2 className="text-xl font-semibold mb-4">Confirm Block</h2>
-                  <p className="mb-4">Are you sure you want to activate the block?</p>
-                  <div className="flex justify-end space-x-2">
-                    <button 
-                      onClick={() => setShowBlockPopup(false)}
-                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors duration-200"
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      onClick={() => {
-                        // Add your block activation logic here
-                        setShowBlockPopup(false)
-                      }}
-                      className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors duration-200"
-                    >
-                      Yes, Activate
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Coming Soon Popup */}
             {showComingSoon && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -709,104 +460,6 @@ const IntergrationsContainer: React.FC = () => {
                   >
                     Got it
                   </button>
-                </div>
-              </div>
-            )}
-
-            {/* Block Configuration Popup */}
-            {showBlockConfirmation && localBlockState === 'inactive' && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-96">
-                  <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Configure Block</h2>
-                  <div className="space-y-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Block Duration
-                      </label>
-                      <div className="flex space-x-2">
-                        <input
-                          type="number"
-                          value={blockDuration.days}
-                          onChange={(e) => setBlockDuration({...blockDuration, days: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                          placeholder="Days"
-                          min="0"
-                        />
-                        <input
-                          type="number"
-                          value={blockDuration.hours}
-                          onChange={(e) => setBlockDuration({...blockDuration, hours: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                          placeholder="Hours"
-                          min="0"
-                          max="23"
-                        />
-                        <input
-                          type="number"
-                          value={blockDuration.minutes}
-                          onChange={(e) => setBlockDuration({...blockDuration, minutes: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                          placeholder="Minutes"
-                          min="0"
-                          max="59"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex flex-col space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          checked={isUnlockable}
-                          onCheckedChange={setIsUnlockable}
-                          className={`${
-                            isUnlockable ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-                          } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
-                        >
-                          <span
-                            className={`${
-                              isUnlockable ? 'translate-x-6' : 'translate-x-1'
-                            } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
-                          />
-                        </Switch>
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Unlockable Block
-                        </label>
-                      </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {isUnlockable 
-                          ? <>Unlockable: You can remove the block before the set duration ends.</>
-                          : <>Lockable: Once set, the block cannot be removed until the duration ends.</>}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Platforms to be blocked:
-                      </label>
-                      <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400">
-                        {connectedPlatforms.map((platform) => (
-                          <li key={platform}>{platform}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <button 
-                      onClick={() => setShowBlockConfirmation(false)}
-                      className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors duration-200"
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      onClick={handleBlockActivation}
-                      className={`px-4 py-2 text-white rounded transition-colors duration-200 ${
-                        isDurationSet()
-                          ? 'bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600'
-                          : 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
-                      }`}
-                      disabled={!isDurationSet()}
-                    >
-                      Activate Block
-                    </button>
-                  </div>
                 </div>
               </div>
             )}
