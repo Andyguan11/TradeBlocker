@@ -1,5 +1,5 @@
 let isBlocked = false;
-let isSetup = false;
+let blockedPlatforms = [];
 
 // TradingView-specific elements to block
 const tradingViewBlockedElements = [
@@ -79,6 +79,8 @@ if (document.readyState === 'complete') {
 chrome.runtime.sendMessage({ action: "getInitialBlockState" }, (response) => {
   if (response) {
     isSetup = response.isSetup;
+    isBlocked = response.isBlocked;
+    blockedPlatforms = response.blockedPlatforms;
     updateBlockingState(response.isBlocked);
   }
 });
@@ -100,6 +102,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Received updateBlockState message:', request.isBlocked);
     sendResponse({success: true});
   }
+  if (request.action === "updateContentScript") {
+    isBlocked = request.isBlocked;
+    blockedPlatforms = request.blockedPlatforms;
+    applyBlock();
+  }
 });
 
 // Listen for changes in localStorage
@@ -111,5 +118,11 @@ window.addEventListener('storage', function(e) {
     }
   }
 });
+
+function applyBlock() {
+  if (isBlocked && blockedPlatforms.some(platform => window.location.hostname.includes(platform.toLowerCase()))) {
+    document.body.innerHTML = '<h1>This site is currently blocked.</h1>';
+  }
+}
 
 console.log('Content script loaded');

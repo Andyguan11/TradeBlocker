@@ -18,12 +18,7 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "*://*.tradingview.com/*",
-        "*://*.ninjatrader.com/*",
-        "*://*.tradovate.com/*",
-        "*://*.metatrader.app/*"
-      ],
+      "matches": ["<all_urls>"],
       "js": ["content.js"]
     }
   ],
