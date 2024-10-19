@@ -84,6 +84,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === "updateBlockState") {
     isBlocked = request.isBlocked;
     blockEndTime = request.endTime;
+    
+    if (isBlocked && userId) {
+      const blockDuration = Math.round((new Date(blockEndTime) - new Date()) / (1000 * 60)); // Duration in minutes
+      updateAverageBlockDuration(userId, blockDuration);
+    }
+    
     updateAllTabs();
     sendResponse({ success: true });
   } else if (request.action === "setUserId") {
@@ -103,3 +109,40 @@ chrome.storage.sync.get(['userId'], (result) => {
     checkBlockStatus();
   }
 });
+
+// Add this function to calculate average block duration
+async function updateAverageBlockDuration(userId, newDuration) {
+  try {
+    const { data, error } = await fetch(`${SUPABASE_URL}/rest/v1/user_settings?user_id=eq.${userId}&select=total_blocks,average_block_duration`, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    }).then(res => res.json());
+
+    if (error) throw error;
+
+    const { total_blocks, average_block_duration } = data[0];
+    const newTotalBlocks = total_blocks + 1;
+    const newAverageDuration = Math.round((average_block_duration * total_blocks + newDuration) / newTotalBlocks);
+
+    const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/user_settings?user_id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        total_blocks: newTotalBlocks,
+        average_block_duration: newAverageDuration
+      })
+    });
+
+    if (!updateResponse.ok) throw new Error('Failed to update average block duration');
+
+    console.log('Updated average block duration:', newAverageDuration);
+  } catch (error) {
+    console.error('Error updating average block duration:', error);
+  }
+}

@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       const { data, error } = await supabaseClient
         .from('user_settings')
-        .select('block_state, block_end_time, is_unlockable, total_blocks, connected_platforms')
+        .select('block_state, block_end_time, is_unlockable, total_blocks, connected_platforms, average_block_duration')
         .eq('user_id', userId)
         .single();
 
@@ -163,6 +163,15 @@ document.addEventListener('DOMContentLoaded', function() {
       if (isBlocked) {
         statusElement.textContent = `Block active until ${endTime.toLocaleString()}`;
         blockConfigSection.style.display = 'none';
+      }
+
+      // Display average block duration
+      const averageDuration = data.average_block_duration || 0;
+      const hours = Math.floor(averageDuration / 60);
+      const minutes = averageDuration % 60;
+      const averageDurationElement = document.getElementById('averageBlockDuration');
+      if (averageDurationElement) {
+        averageDurationElement.textContent = `Average Block Duration: ${hours}h ${minutes}m`;
       }
     } catch (error) {
       console.error('Error fetching user settings:', error);
@@ -262,6 +271,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
       totalBlocks += 1;
       console.log('Block activated on server, new state: active, end time:', endTime);
+
+      // After successful block activation
+      await fetchAndDisplayAverageBlockDuration();
     } catch (error) {
       console.error('Error activating block on server:', error);
       alert('Error syncing block state with server. Local block is active, but may not persist.');
@@ -348,4 +360,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Call this function when the popup loads
   testSupabaseConnection();
+
+  // Add this function to fetch and display average block duration
+  async function fetchAndDisplayAverageBlockDuration() {
+    try {
+      const { data, error } = await supabaseClient
+        .from('user_settings')
+        .select('average_block_duration')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) throw error;
+
+      const averageDuration = data.average_block_duration;
+      const hours = Math.floor(averageDuration / 60);
+      const minutes = averageDuration % 60;
+
+      const averageDurationElement = document.getElementById('averageBlockDuration');
+      if (averageDurationElement) {
+        averageDurationElement.textContent = `Average Block Duration: ${hours}h ${minutes}m`;
+      }
+    } catch (error) {
+      console.error('Error fetching average block duration:', error);
+    }
+  }
 });
